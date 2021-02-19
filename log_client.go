@@ -72,6 +72,7 @@ func (c *LogClient) GetSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 	}
 
 	// Verify that the sth is valid
+	// TODO replace this with Monitor's own verification using signature.go file in Monitor
 	if err := c.VerifySTHSignature(*sth); err != nil {
 		return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
 	}
@@ -120,3 +121,55 @@ func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64)
 	consistencyProof := &ConsistencyProofData{logID, first, second, resp.Consistency}
 	return consistencyProof, nil
 }
+
+// GetEntryAndProof returns a log entry and audit path for the index of a leaf.
+func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64) (*InclusionProofData, []byte, error) {
+	base10 := 10
+	params := map[string]string{
+		"leaf_index": strconv.FormatUint(index, base10),
+		"tree_size":  strconv.FormatUint(treeSize, base10),
+	}
+	var resp ct.GetEntryAndProofResponse
+	if _, _, err := c.GetAndParse(ctx, ct.GetEntryAndProofPath, params, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	logID := c.log.LogID
+	inclusionProof := &InclusionProofData{logID, treeSize, index, resp.AuditPath}
+	return inclusionProof, resp.LeafInput,  nil
+}
+
+/*func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
+	sth, err := c.GetSTH(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create STH")
+		return nil, nil	// TODO change to a valid error
+	}
+	poc, err := c.GetSTHConsistency(ctx, 100, 1000)
+	if err != nil {
+		fmt.Printf("Failed to get Entry and Proof")
+		return nil, nil // TODO change to a valid error
+	}
+	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
+}
+*/
+
+/*// GetProofByHash returns an audit path for the hash of an SCT.
+func (c *LogClient) GetProofByHash(ctx context.Context, hash []byte, treeSize uint64) (*InclusionProofData, error) {
+	b64Hash := base64.StdEncoding.EncodeToString(hash)
+	base10 := 10
+	params := map[string]string{
+		"tree_size": strconv.FormatUint(treeSize, base10),
+		"hash":      b64Hash,
+	}
+	var resp ct.GetProofByHashResponse
+	if _, _, err := c.GetAndParse(ctx, ct.GetProofByHashPath, params, &resp); err != nil {
+		return nil, err
+	}
+
+	logID := c.log.LogID
+	inclusionProof := &InclusionProofData{logID, treeSize, resp.LeafIndex, resp.AuditPath}
+	return inclusionProof, nil
+}
+*/
+
