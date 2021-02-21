@@ -15,7 +15,7 @@
 // Package loglist2 allows parsing and searching of the master CT Log list.
 // It expects the log list to conform to the v2beta schema.
 
-package loglist
+package entitylist
 
 import (
 	"encoding/json"
@@ -28,7 +28,7 @@ import (
 
 const (
 	// LogListName has the name of the log_list json file that is stored locally in each Monitor for the time being
-	LogListName = "loglist/log_list.json"
+	LogListName = "entitylist/log_list.json"
 )
 
 // LogList holds a collection of CT logs, grouped by operator.
@@ -46,11 +46,11 @@ type Operator struct {
 	// operator.
 	Email []string `json:"email"`
 	// Logs is a list of CT logs run by this operator.
-	Logs []*Log `json:"logs"`
+	Logs []*LogInfo `json:"logs"`
 }
 
 // Log describes a single CT log.
-type Log struct {
+type LogInfo struct {
 	// Description is a human-readable string that describes the log.
 	Description string `json:"description,omitempty"`
 	// LogID is the SHA-256 hash of the log's public key.
@@ -186,7 +186,7 @@ func (ls *LogStates) Active() (*LogState, *ReadOnlyLogState) {
 // Create new LogList
 func NewLogList() *LogList{
 	byteData := utils.JSONFiletoBytes(LogListName)
-	logList, err := NewFromJSON(byteData)
+	logList, err := NewLogListFromJSON(byteData)
 	if err != nil {
 		return nil
 	}
@@ -194,7 +194,7 @@ func NewLogList() *LogList{
 }
 
 // NewFromJSON creates a LogList from JSON encoded data.
-func NewFromJSON(llData []byte) (*LogList, error) {
+func NewLogListFromJSON(llData []byte) (*LogList, error) {
 	var ll LogList
 	if err := json.Unmarshal(llData, &ll); err != nil {
 		return nil, fmt.Errorf("failed to parse log list: %v", err)
@@ -203,7 +203,7 @@ func NewFromJSON(llData []byte) (*LogList, error) {
 }
 
 // FindLogByLogID finds the log with the given logID string
-func (ll *LogList) FindLogByLogID(logID string) *Log {
+func (ll *LogList) FindLogByLogID(logID string) *LogInfo {
 	for _, op := range ll.Operators {
 		for _, log := range op.Logs {
 			if (strings.Contains(log.LogID, logID)){

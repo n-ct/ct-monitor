@@ -1,0 +1,18 @@
+{
+    "operators": [
+      {
+        "name": "UConn",
+        "email": [
+            "abhinna.adhikari@uconn.edu"
+        ],
+        "monitors": [
+          {
+            "monitor_id": "mid",
+            "monitor_key": "mkey",
+            "monitor_url": "murl",
+            "gossiper_url": "gurl"
+          }
+        ]
+      }
+    ]
+}

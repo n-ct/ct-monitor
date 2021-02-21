@@ -8,13 +8,13 @@ import (
 
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/jsonclient"
-	"ct-monitor/loglist"
+	"ct-monitor/entitylist"
 )
 
 // LogClient represents a client for a given CT Log instance
 type LogClient struct {
 	jsonclient.JSONClient
-	log loglist.Log		// loglist.Log Structthat contains the json data about the logger found in loglist.json
+	logInfo entitylist.LogInfo		// loglist.Log Structthat contains the json data about the logger found in loglist.json
 }
 
 // New constructs a new LogClient instance.
@@ -23,7 +23,7 @@ type LogClient struct {
 // |hc| is the underlying client to be used for HTTP requests to the CT log.
 // |opts| can be used to provide a custom logger interface and a public key
 // for signature verification.
-func New(uri string, hc *http.Client, opts jsonclient.Options, log *loglist.Log) (*LogClient, error) {
+func New(uri string, hc *http.Client, opts jsonclient.Options, log *entitylist.LogInfo) (*LogClient, error) {
 	logClient, err := jsonclient.New(uri, hc, opts)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func New(uri string, hc *http.Client, opts jsonclient.Options, log *loglist.Log)
 }
 
 // Create a LogClient instance to access the log and produce ct v2 data
-func NewLogClient(log *loglist.Log) (*LogClient, error){
+func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
 	uri := log.URL	
 	sPubKey := log.Key
 
@@ -79,7 +79,7 @@ func (c *LogClient) GetSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 
 	// Construct SignedTreeHeadData
 	treeHeadSignature := c.ConstructTreeHeadSignatureFromSTH(*sth)
-	logID := c.log.LogID
+	logID := c.logInfo.LogID
 	STHData := &SignedTreeHeadData{logID, treeHeadSignature, sth.TreeHeadSignature}
 	return STHData, nil
 }
@@ -117,7 +117,7 @@ func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64)
 		return nil, err
 	}
 
-	logID := c.log.LogID
+	logID := c.logInfo.LogID
 	consistencyProof := &ConsistencyProofData{logID, first, second, resp.Consistency}
 	return consistencyProof, nil
 }
@@ -134,7 +134,7 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 		return nil, nil, err
 	}
 
-	logID := c.log.LogID
+	logID := c.logInfo.LogID
 	inclusionProof := &InclusionProofData{logID, treeSize, index, resp.AuditPath}
 	return inclusionProof, resp.LeafInput,  nil
 }
