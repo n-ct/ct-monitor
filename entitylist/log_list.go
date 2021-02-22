@@ -26,11 +26,6 @@ import (
 	"ct-monitor/utils"
 )
 
-const (
-	// LogListName has the name of the log_list json file that is stored locally in each Monitor for the time being
-	LogListName = "entitylist/log_list.json"
-)
-
 // LogList holds a collection of CT logs, grouped by operator.
 type LogList struct {
 	// Operators is a list of CT log operators and the logs they operate.
@@ -184,8 +179,8 @@ func (ls *LogStates) Active() (*LogState, *ReadOnlyLogState) {
 }
 
 // Create new LogList
-func NewLogList() *LogList{
-	byteData := utils.JSONFiletoBytes(LogListName)
+func NewLogList(logListName string) *LogList{
+	byteData := utils.JSONFiletoBytes(logListName)
 	logList, err := NewLogListFromJSON(byteData)
 	if err != nil {
 		return nil

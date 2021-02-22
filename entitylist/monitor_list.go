@@ -25,11 +25,6 @@ import (
 	"ct-monitor/utils"
 )
 
-const (
-	// LogListName has the name of the log_list json file that is stored locally in each Monitor for the time being
-	MonitorListName = "entitylist/monitor_list.json"
-)
-
 // LogList holds a collection of CT logs, grouped by operator.
 type MonitorList struct {
 	// Operators is a list of CT log operators and the logs they operate.
@@ -62,8 +57,8 @@ type MonitorInfo struct {
 }
 
 // Create new MonitorList
-func NewMonitorList() *MonitorList{
-	byteData := utils.JSONFiletoBytes(MonitorListName)
+func NewMonitorList(monitorListName string) *MonitorList{
+	byteData := utils.JSONFiletoBytes(monitorListName)
 	monitorList, err := NewMonitorListFromJSON(byteData)
 	if err != nil {
 		return nil
