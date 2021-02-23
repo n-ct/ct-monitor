@@ -49,6 +49,40 @@ type ProofOfMisbehavior struct {
 	ProofList []CTObject
 }
 
+type AuditOK struct {
+	TBS 		AuditOKSignedFields	// Signed fields of the Alert
+	Signature 	ct.DigitallySigned
+}
+
+type AuditOKSignedFields struct {
+	Signer		string	// The Monitor that signs the AuditOK
+	Timestamp	uint64	// The timestamp when the AuditOK was created
+}
+
+type ObjectIdentifier struct{
+	First string
+	Second string
+	Third uint64
+	Fourth string
+}
+
+//creates identifier for each type of CTObject
+//Alerts [Subject][Signer][Timestamp][Version]
+//The rest [TypeID][Subject|Signer][Timestamp][Version]
+func (data *CTObject) Identifier() (ObjectIdentifier){
+	if data.TypeID == "Alert"{
+		return ObjectIdentifier{First: data.Subject, Second: data.Signer, Third: data.Timestamp, Fourth: data.Version.String(),};
+	}
+
+	var subjectOrSigner string;
+	if len(data.Subject) == 0 {
+		subjectOrSigner = data.Signer;
+	} else {
+		subjectOrSigner = data.Subject;
+	}
+	return ObjectIdentifier{First: data.TypeID, Second: subjectOrSigner, Third: data.Timestamp, Fourth: data.Version.String(),};
+}
+
 type VersionData struct {
 	Major uint32
 	Minor uint32

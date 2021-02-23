@@ -1,130 +1,137 @@
-package main 
+package monitor
 
 import (
 	"context"
 	"fmt"
-	"flag"
-	"os"
-	"os/signal"
-	"net/http"
-	"time"
-	"github.com/golang/glog"
 	"encoding/json"
+	"net/http"
+	"bytes"
 
 	mtr "ct-monitor"
-	"ct-monitor/loglist"
+	"ct-monitor/entitylist"
 	"ct-monitor/utils"
+	//"ct-monitor/signature"
 )
 
 var (
-	listenAddress = flag.String("listen", ":8080", "Listen address:port for HTTP server")
 	monitorConfigName = "monitor_config.json"
-	logIDMap = map[string] *mtr.LogClient{}
+	monitorListName = "entitylist/monitor_list.json"
+	logListName = "entitylist/log_list.json"
 )
+
+type Monitor struct {
+	LogIDMap map[string] *mtr.LogClient
+	MonitorList	*entitylist.MonitorList
+	GossiperURL string 
+	ListenAddress string 
+	CTObjectMap map[string]map[string]map[uint64]map[string] *mtr.CTObject
+	// TODO add a Signer that stores the private key and does all signing functionality
+}
 
 type MonitorConfig struct {
 	LogIDs []string
+	MonitorID string
 }
 
-func main(){
-	flag.Parse()
-	defer glog.Flush()
-
-	// Handle user interrupt to stop the Monitor 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-
-	// Initalize the variables of the Monitor
-	monitorSetup()
-
-	// Create http.Server instance for the Monitor
-	server := serverSetup()
-	glog.Infoln("Created monitor http.Server")
-
-	// Test the LoggerClient Interface
-	testLogClient()
-
-	// Handling the stop signal and closing things 
-	<-stop
-	glog.Infoln("Received stop signal")
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	server.Shutdown(ctx)
-	glog.Infoln("Graceful shutdown")
-	
+func InitializeMonitor() (*Monitor, error){
+	logIDMap, monitorList, gossiperURL, monitorURL, err := monitorSetupWithConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create logClient")
+	}
+	ctObjectMap := make(map[string]map[string]map[uint64]map[string] *mtr.CTObject)
+	monitor := &Monitor{logIDMap, monitorList, *gossiperURL, *monitorURL, ctObjectMap}
+	return monitor, nil
 }
 
 // Initializes the various Monitor variables
-func monitorSetup() {
+func monitorSetupWithConfig() (map[string] *mtr.LogClient, *entitylist.MonitorList, *string, *string, error) {
+	logIDMap := make(map[string] *mtr.LogClient)
+
+	// Parse monitorConfig json
 	byteData := utils.JSONFiletoBytes(monitorConfigName)
 	var monitorConfig MonitorConfig
 	if err := json.Unmarshal(byteData, &monitorConfig); err != nil {
-		fmt.Errorf("failed to parse log list: %v", err)
+		return logIDMap, nil, nil, nil, fmt.Errorf("failed to parse log list: %v", err)
 	}
 
-	logList := loglist.NewLogList()
+	// Create logIDMap
+	logList := entitylist.NewLogList(logListName)
 	for _, logID := range monitorConfig.LogIDs {
 		log := logList.FindLogByLogID(logID)
 		logClient, err := mtr.NewLogClient(log)
 		if err != nil {
 			fmt.Printf("Failed to create logClient")
-			return;
+			return logIDMap, nil, nil, nil, fmt.Errorf("Failed to create logClient")
 		}
 		logIDMap[logID] = logClient
 	}
+
+	// Create MonitorList get GossiperURL
+	monitorList := entitylist.NewMonitorList(monitorListName)
+	monitorInfo := monitorList.FindMonitorByMonitorID(monitorConfig.MonitorID)
+	gossiperURL := &monitorInfo.GossiperURL
+	monitorURL := &monitorInfo.MonitorURL
+	return logIDMap, monitorList, gossiperURL, monitorURL, nil
 }
 
-// Sets up the basic monitor http server
-func serverSetup() *http.Server{
-	serveMux := handlerSetup()
-	server := &http.Server {
-		Addr: *listenAddress,
-		Handler: serveMux,
+// Make a post request to corresponding GossiperURL with the given ctObject
+func (m *Monitor) Gossip(ctObject mtr.CTObject) {
+	jsonBytes, _ := json.Marshal(ctObject)
+	gossipURL := utils.CreateRequestURL(m.GossiperURL, "/gossip")
+	req, err := http.NewRequest("POST", gossipURL, bytes.NewBuffer(jsonBytes)) 
+	req.Header.Set("X-Custom-Header", "myvalue");
+	req.Header.Set("Content-Type", "application/json");
+
+	client := &http.Client{};
+	resp, err := client.Do(req);
+	if err != nil {
+		panic(err);
 	}
 
-	// start up handles
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-		glog.Exitf("Problem serving: %v\n",err)
-		}
-	}()
-	return server
+	defer resp.Body.Close();
 }
 
-// Sets up the handler and the various path handle functions
-func handlerSetup() (*http.ServeMux) {
-	handler := mtr.NewHandler()
-	serveMux := http.NewServeMux()
-	serveMux.HandleFunc("/new-ct/get-sth", handler.GetSth)	// Currently only exists for testing purposes
+//addEntry adds a new entry to the selected map using the data identifier as keys
+func (m *Monitor) AddEntry(ctObject *mtr.CTObject){
+	identifier := ctObject.Identifier()
 
-	// Return a 200 on the root so clients can easily check if server is up
-	serveMux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
-		if req.URL.Path == "/" {
-			resp.WriteHeader(http.StatusOK)
-		} else {
-			resp.WriteHeader(http.StatusNotFound)
-		}
-	})
-	return serveMux
+	if _, ok := m.CTObjectMap[identifier.First]; !ok {
+		m.CTObjectMap[identifier.First] = make(map[string]map[uint64]map[string] *mtr.CTObject);
+	}
+	if _, ok := m.CTObjectMap[identifier.First][identifier.Second]; !ok {
+		m.CTObjectMap[identifier.First][identifier.Second] = make(map[uint64]map[string] *mtr.CTObject);
+	}
+	if _, ok := m.CTObjectMap[identifier.First][identifier.Second][identifier.Third]; !ok {
+		m.CTObjectMap[identifier.First][identifier.Second][identifier.Third] = make(map[string] *mtr.CTObject);
+	}
+	m.CTObjectMap[identifier.First][identifier.Second][identifier.Third][identifier.Fourth] = ctObject;
 }
 
 // Temporary function to test basic loggerClient methods
-func testLogClient(){
+func (m *Monitor) TestLogClient(){
 	ctx := context.Background()
-	logID := "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM="	// Will replace the logID hardcode with loglist.go call
-	logClient := logIDMap[logID]
-	sth, err := logClient.GetSTH(ctx)
+	logID := "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM="
+	logClient := m.LogIDMap[logID]
+	sth, err := logClient.GetSTHWithConsistencyProof(ctx, 100, 1000)
 	if err != nil {
 		fmt.Printf("Failed to create STH")
 		return;
 	}
-	glog.Infoln(sth)
 
-	poc, err := logClient.GetSTHConsistency(ctx, 100, 1000)
-	if err != nil {
-		fmt.Printf("Failed to get Entry and Proof")
-		return;
-	}
-	fmt.Println(poc)	
+	fmt.Println(sth)
+	fmt.Println()
+
+	monitorList := entitylist.NewMonitorList(monitorListName)
+	fmt.Println(monitorList)
+	monitorID := "mid"
+	fmt.Println(monitorList.FindMonitorByMonitorID(monitorID))
+
+	fmt.Println()
+	fmt.Println(m.CTObjectMap)
+	m.AddEntry(sth)
+	fmt.Println(m.CTObjectMap)
+
+	fmt.Println()
+	fmt.Println(utils.CreateRequestURL("localhost:8080/", "/gossip"))
+
 }
-
-

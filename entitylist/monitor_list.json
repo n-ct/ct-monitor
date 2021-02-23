@@ -9,7 +9,7 @@
           {
             "monitor_id": "mid",
             "monitor_key": "mkey",
-            "monitor_url": "murl",
+            "monitor_url": "localhost:8080",
             "gossiper_url": "gurl"
           }
         ]

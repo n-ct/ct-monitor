@@ -14,7 +14,7 @@ import (
 // LogClient represents a client for a given CT Log instance
 type LogClient struct {
 	jsonclient.JSONClient
-	logInfo entitylist.LogInfo		// loglist.Log Structthat contains the json data about the logger found in loglist.json
+	LogInfo entitylist.LogInfo		// loglist.Log Structthat contains the json data about the logger found in loglist.json
 }
 
 // New constructs a new LogClient instance.
@@ -45,6 +45,7 @@ func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
 	}
 
 	// Manually create the verifier because passing in string publicKey to opts doesn't seem to work
+	// TODO remove this and just use the other verifier
 	pubKey, err := ct.PublicKeyFromB64(sPubKey)
 	verifier, err := ct.NewSignatureVerifier(pubKey)
 	logClient.Verifier = verifier
@@ -57,7 +58,7 @@ type RspError = jsonclient.RspError
 // GetSTH retrieves the current STH from the log and produces a SignedTreeHeadData object
 // Returns a populated SignedTreeHead, or a non-nil error (which may be of type
 // RspError if a raw http.Response is available).
-func (c *LogClient) GetSTH(ctx context.Context) (*SignedTreeHeadData, error) {
+func (c *LogClient) getSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 	// Parse basic response
 	var resp ct.GetSTHResponse
 	httpRsp, body, err := c.GetAndParse(ctx, ct.GetSTHPath, nil, &resp)
@@ -71,17 +72,15 @@ func (c *LogClient) GetSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 		return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
 	}
 
-	// Verify that the sth is valid
-	// TODO replace this with Monitor's own verification using signature.go file in Monitor
-	if err := c.VerifySTHSignature(*sth); err != nil {
-		return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-	}
-
-	// Construct SignedTreeHeadData
 	treeHeadSignature := c.ConstructTreeHeadSignatureFromSTH(*sth)
-	logID := c.logInfo.LogID
+	logID := c.LogInfo.LogID
 	STHData := &SignedTreeHeadData{logID, treeHeadSignature, sth.TreeHeadSignature}
 	return STHData, nil
+}
+
+func (c *LogClient) GetSignedTreeHead(ctx context.Context) (*CTObject, error) {
+	sth, _ := c.getSTH(ctx)
+	return ConstructCTObject(sth), nil
 }
 
 // VerifySTHSignature checks the signature in sth, returning any error encountered or nil if verification is successful.
@@ -117,7 +116,7 @@ func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64)
 		return nil, err
 	}
 
-	logID := c.logInfo.LogID
+	logID := c.LogInfo.LogID
 	consistencyProof := &ConsistencyProofData{logID, first, second, resp.Consistency}
 	return consistencyProof, nil
 }
@@ -134,13 +133,13 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 		return nil, nil, err
 	}
 
-	logID := c.logInfo.LogID
+	logID := c.LogInfo.LogID
 	inclusionProof := &InclusionProofData{logID, treeSize, index, resp.AuditPath}
 	return inclusionProof, resp.LeafInput,  nil
 }
 
-/*func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
-	sth, err := c.GetSTH(ctx)
+func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
+	sth, err := c.getSTH(ctx)
 	if err != nil {
 		fmt.Printf("Failed to create STH")
 		return nil, nil	// TODO change to a valid error
@@ -151,25 +150,5 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 		return nil, nil // TODO change to a valid error
 	}
 	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
+	return ConstructCTObject(sthWithPoc), nil
 }
-*/
-
-/*// GetProofByHash returns an audit path for the hash of an SCT.
-func (c *LogClient) GetProofByHash(ctx context.Context, hash []byte, treeSize uint64) (*InclusionProofData, error) {
-	b64Hash := base64.StdEncoding.EncodeToString(hash)
-	base10 := 10
-	params := map[string]string{
-		"tree_size": strconv.FormatUint(treeSize, base10),
-		"hash":      b64Hash,
-	}
-	var resp ct.GetProofByHashResponse
-	if _, _, err := c.GetAndParse(ctx, ct.GetProofByHashPath, params, &resp); err != nil {
-		return nil, err
-	}
-
-	logID := c.log.LogID
-	inclusionProof := &InclusionProofData{logID, treeSize, resp.LeafIndex, resp.AuditPath}
-	return inclusionProof, nil
-}
-*/
-
