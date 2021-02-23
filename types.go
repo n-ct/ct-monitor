@@ -5,6 +5,7 @@ import (
 	ct "github.com/google/certificate-transparency-go"
 	"ct-monitor/signature"
 	"encoding/json"
+	"bytes"
 )
 
 // Endpoint path const variables
@@ -51,32 +52,47 @@ type AlertSignedFields struct {
 	Timestamp 	 uint64 // The MMD that the Alert corresponds to
 }
 
-type ProofOfMisbehavior struct {
-	ProofList []CTObject
+type ConflictingSTHPOM struct {
+	STH1	SignedTreeHeadData
+	STH2	SignedTreeHeadData
 }
 
-/*func CreateConflictingSTHPOM(sth1 *CTObject, sth2 *CTObject) (*CTObject, error) {
-	if !(sth1.TypeID == "STH" || sth1.TypeID == "STH_POC"){
+type NonRespondingLogPOM struct {
+	AlertList []Alert
+}
+
+// TODO Also add support for STH_POC
+func CreateConflictingSTHPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) {
+	if !(obj1.TypeID == "STH" || obj1.TypeID == "STH_POC") || !(obj2.TypeID == "STH" || obj2.TypeID == "STH_POC"){
 		return nil, fmt.Errorf("Not valid STH or STH_POC")
 	}
-	sth_poc := i.(*SignedTreeHeadWithConsistencyProof)
-	typeID = "STH_POC"
-	timestamp = sth_poc.SignedTreeHead.TreeHeadData.Timestamp
-	signer = sth_poc.SignedTreeHead.LogID
-	blob, _ = signature.SerializeData(sth_poc)
-	digest, _, _ = signature.GenerateHash(sth_poc.SignedTreeHead.Signature.Algorithm.Hash, blob)
+
+	if bytes.Equal(obj1.Digest, obj2.Digest){
+		return nil, fmt.Errorf("STHs are not conflicting")
+	}
+
+	// CURRENTLY ONLY HAVE SUPPORT FOR STH
+	var signer string
+	version := VersionData{1,0,0}
+	sth1 := DeconstructCTObject(obj1).(SignedTreeHeadData)
+	sth2 := DeconstructCTObject(obj2).(SignedTreeHeadData)
+
+	// Create fields of PoM CTObject
+	typeID := ConflictingSTHPOMTypeID
+	timestamp := sth1.TreeHeadData.Timestamp
+	subject := sth1.LogID
+	proof := ConflictingSTHPOM{sth1, sth2}
+	blob, _ := signature.SerializeData(proof)
+	digest, _, _ := signature.GenerateHash(sth1.Signature.Algorithm.Hash, blob)
+	
+	// Create the CTObject PoM
 	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, nil
 }
-*/
 
 type AuditOK struct {
-	TBS 		AuditOKSignedFields	// Signed fields of the Alert
+	STH			SignedTreeHeadData
 	Signature 	ct.DigitallySigned
-}
-
-type AuditOKSignedFields struct {
-	Signer		string	// The Monitor that signs the AuditOK
-	Timestamp	uint64	// The timestamp when the AuditOK was created
 }
 
 type ObjectIdentifier struct{
@@ -128,6 +144,8 @@ const (
 	STHTypeID = "STH"
 	STHPOCTypeID = "STH_POC"
 	AlertTypeID = "ALERT"
+	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
+	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
 )
 
 func ConstructCTObject(i interface{}) *CTObject {
@@ -179,10 +197,12 @@ func DeconstructCTObject(ctObject *CTObject) interface{} {
 		var sth SignedTreeHeadData 
 		json.Unmarshal(ctObject.Blob, &sth)
 		return sth
+
 	case STHPOCTypeID:
 		var sth_poc SignedTreeHeadWithConsistencyProof 
 		json.Unmarshal(ctObject.Blob, &sth_poc)
 		return sth_poc
+
 	case AlertTypeID:
 		var alert Alert
 		json.Unmarshal(ctObject.Blob, &alert)
