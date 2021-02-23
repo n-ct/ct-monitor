@@ -4,9 +4,15 @@ import (
 	"fmt"
 	ct "github.com/google/certificate-transparency-go"
 	"ct-monitor/signature"
+	"encoding/json"
 )
 
-// TODO need to decide if will add signature.go and types.go in tls dir from google repo
+// Endpoint path const variables
+const (
+	AuditPath 		  = "/ct/v1/audit"
+	NewInfoPath		  = "/ct/v1/new-info"
+	MonitorDomainPath = "ct/v1/monitor-domain"
+)
 
 type SignedTreeHeadData struct {
 	LogID 			string
@@ -48,6 +54,20 @@ type AlertSignedFields struct {
 type ProofOfMisbehavior struct {
 	ProofList []CTObject
 }
+
+/*func CreateConflictingSTHPOM(sth1 *CTObject, sth2 *CTObject) (*CTObject, error) {
+	if !(sth1.TypeID == "STH" || sth1.TypeID == "STH_POC"){
+		return nil, fmt.Errorf("Not valid STH or STH_POC")
+	}
+	sth_poc := i.(*SignedTreeHeadWithConsistencyProof)
+	typeID = "STH_POC"
+	timestamp = sth_poc.SignedTreeHead.TreeHeadData.Timestamp
+	signer = sth_poc.SignedTreeHead.LogID
+	blob, _ = signature.SerializeData(sth_poc)
+	digest, _, _ = signature.GenerateHash(sth_poc.SignedTreeHead.Signature.Algorithm.Hash, blob)
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+}
+*/
 
 type AuditOK struct {
 	TBS 		AuditOKSignedFields	// Signed fields of the Alert
@@ -103,6 +123,13 @@ type CTObject struct {
 	Blob 		[]byte // An object used in CT converted to byte array
 }
 
+// TypeID const variables
+const (
+	STHTypeID = "STH"
+	STHPOCTypeID = "STH_POC"
+	AlertTypeID = "ALERT"
+)
+
 func ConstructCTObject(i interface{}) *CTObject {
 	var typeID string
 	version := VersionData{1,0,0}
@@ -115,7 +142,7 @@ func ConstructCTObject(i interface{}) *CTObject {
 	switch v := i.(type) {
 	case *SignedTreeHeadData:
 		sth := i.(*SignedTreeHeadData)
-		typeID = "STH"
+		typeID = STHTypeID
 		timestamp = sth.TreeHeadData.Timestamp
 		signer = sth.LogID
 		blob, _ = signature.SerializeData(sth)
@@ -123,7 +150,7 @@ func ConstructCTObject(i interface{}) *CTObject {
 	
 	case *Alert:
 		alert := i.(*Alert)
-		typeID = "Alert"
+		typeID = AlertTypeID
 		timestamp = alert.TBS.Timestamp
 		signer = alert.TBS.Signer
 		blob, _ = signature.SerializeData(alert)
@@ -131,7 +158,7 @@ func ConstructCTObject(i interface{}) *CTObject {
 	
 	case *SignedTreeHeadWithConsistencyProof:
 		sth_poc := i.(*SignedTreeHeadWithConsistencyProof)
-		typeID = "STH_POC"
+		typeID = STHPOCTypeID
 		timestamp = sth_poc.SignedTreeHead.TreeHeadData.Timestamp
 		signer = sth_poc.SignedTreeHead.LogID
 		blob, _ = signature.SerializeData(sth_poc)
@@ -143,4 +170,23 @@ func ConstructCTObject(i interface{}) *CTObject {
 
 	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
 	return ctObject
+}
+
+// Takes a *CTObject and returns the struct found within the blob
+func DeconstructCTObject(ctObject *CTObject) interface{} {
+	switch typeID := ctObject.TypeID; typeID {
+	case STHTypeID:
+		var sth SignedTreeHeadData 
+		json.Unmarshal(ctObject.Blob, &sth)
+		return sth
+	case STHPOCTypeID:
+		var sth_poc SignedTreeHeadWithConsistencyProof 
+		json.Unmarshal(ctObject.Blob, &sth_poc)
+		return sth_poc
+	case AlertTypeID:
+		var alert Alert
+		json.Unmarshal(ctObject.Blob, &alert)
+		return alert
+	}
+	return nil
 }
