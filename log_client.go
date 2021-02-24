@@ -75,10 +75,13 @@ func (c *LogClient) getSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 	treeHeadSignature := c.ConstructTreeHeadSignatureFromSTH(*sth)
 	logID := c.LogInfo.LogID
 	STHData := &SignedTreeHeadData{logID, treeHeadSignature, sth.TreeHeadSignature}
+	fmt.Println()
+	fmt.Println(STHData.TreeHeadData.TreeSize)
+	fmt.Println()
 	return STHData, nil
 }
 
-func (c *LogClient) GetSignedTreeHead(ctx context.Context) (*CTObject, error) {
+func (c *LogClient) GetSTH(ctx context.Context) (*CTObject, error) {
 	sth, _ := c.getSTH(ctx)
 	return ConstructCTObject(sth), nil
 }

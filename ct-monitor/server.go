@@ -11,6 +11,8 @@ import (
 
 	"ct-monitor/monitor"
 	"ct-monitor/handler"
+	mtr "ct-monitor"
+
 )
 
 func main(){
@@ -20,7 +22,6 @@ func main(){
 	// Handle user interrupt to stop the Monitor 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
-
 
 	// Initalize the variables of the Monitor
 	monitorInstance, err := monitor.InitializeMonitor()
@@ -64,9 +65,9 @@ func serverSetup(m *monitor.Monitor) *http.Server{
 func handlerSetup(m *monitor.Monitor) (*http.ServeMux) {
 	handler := handler.NewHandler(m)
 	serveMux := http.NewServeMux()
-	serveMux.HandleFunc("/ns-ct/audit", handler.Audit)
-	serveMux.HandleFunc("/ns-ct/new-info", handler.NewInfo)
-	serveMux.HandleFunc("/ns-ct/monitor-domain", handler.MonitorDomain)
+	serveMux.HandleFunc(mtr.AuditPath, handler.Audit)
+	serveMux.HandleFunc(mtr.NewInfoPath, handler.NewInfo)
+	serveMux.HandleFunc(mtr.MonitorDomainPath, handler.MonitorDomain)
 
 	// Return a 200 on the root so clients can easily check if server is up
 	serveMux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {

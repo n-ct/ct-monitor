@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	monitorConfigName = "monitor_config.json"
+	monitorConfigName = "monitor/monitor_config.json"
 	monitorListName = "entitylist/monitor_list.json"
 	logListName = "entitylist/log_list.json"
 )
@@ -42,6 +42,7 @@ func InitializeMonitor() (*Monitor, error){
 	monitor := &Monitor{logIDMap, monitorList, *gossiperURL, *monitorURL, ctObjectMap}
 	return monitor, nil
 }
+
 
 // Initializes the various Monitor variables
 func monitorSetupWithConfig() (map[string] *mtr.LogClient, *entitylist.MonitorList, *string, *string, error) {
@@ -75,9 +76,9 @@ func monitorSetupWithConfig() (map[string] *mtr.LogClient, *entitylist.MonitorLi
 }
 
 // Make a post request to corresponding GossiperURL with the given ctObject
-func (m *Monitor) Gossip(ctObject mtr.CTObject) {
+func (m *Monitor) Gossip(ctObject *mtr.CTObject) {
 	jsonBytes, _ := json.Marshal(ctObject)
-	gossipURL := utils.CreateRequestURL(m.GossiperURL, "/gossip")
+	gossipURL := utils.CreateRequestURL(m.GossiperURL, "/ct/v1/gossip")
 	req, err := http.NewRequest("POST", gossipURL, bytes.NewBuffer(jsonBytes)) 
 	req.Header.Set("X-Custom-Header", "myvalue");
 	req.Header.Set("Content-Type", "application/json");
@@ -92,7 +93,8 @@ func (m *Monitor) Gossip(ctObject mtr.CTObject) {
 }
 
 //addEntry adds a new entry to the selected map using the data identifier as keys
-func (m *Monitor) AddEntry(ctObject *mtr.CTObject){
+// TODO Add error case here and in Identifier within types.go
+func (m *Monitor) AddEntry(ctObject *mtr.CTObject) error{
 	identifier := ctObject.Identifier()
 
 	if _, ok := m.CTObjectMap[identifier.First]; !ok {
@@ -105,6 +107,7 @@ func (m *Monitor) AddEntry(ctObject *mtr.CTObject){
 		m.CTObjectMap[identifier.First][identifier.Second][identifier.Third] = make(map[string] *mtr.CTObject);
 	}
 	m.CTObjectMap[identifier.First][identifier.Second][identifier.Third][identifier.Fourth] = ctObject;
+	return nil
 }
 
 // Temporary function to test basic loggerClient methods
@@ -112,26 +115,26 @@ func (m *Monitor) TestLogClient(){
 	ctx := context.Background()
 	logID := "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM="
 	logClient := m.LogIDMap[logID]
-	sth, err := logClient.GetSTHWithConsistencyProof(ctx, 100, 1000)
+	sth, err := logClient.GetSTH(ctx)
 	if err != nil {
 		fmt.Printf("Failed to create STH")
+		return;
+	}
+	sth1, err := logClient.GetSTH(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create STH1")
 		return;
 	}
 
 	fmt.Println(sth)
 	fmt.Println()
+	fmt.Println(sth1)
+	fmt.Println()
 
-	monitorList := entitylist.NewMonitorList(monitorListName)
-	fmt.Println(monitorList)
-	monitorID := "mid"
-	fmt.Println(monitorList.FindMonitorByMonitorID(monitorID))
 
 	fmt.Println()
 	fmt.Println(m.CTObjectMap)
 	m.AddEntry(sth)
 	fmt.Println(m.CTObjectMap)
-
-	fmt.Println()
-	fmt.Println(utils.CreateRequestURL("localhost:8080/", "/gossip"))
 
 }

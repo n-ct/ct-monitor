@@ -1,16 +1,20 @@
 {
     "operators": [
       {
-        "name": "UConn",
-        "email": [
-            "abhinna.adhikari@uconn.edu"
-        ],
+        "name": "Nobody",
+        "email": ["nothing@here.come"],
         "monitors": [
           {
-            "monitor_id": "mid",
-            "monitor_key": "mkey",
+            "monitor_id": "monitor1",
+            "monitor_key": "aaabbbccc",
             "monitor_url": "localhost:8080",
-            "gossiper_url": "gurl"
+            "gossiper_url": "http://localhost:4500"
+          },
+          {
+            "monitor_id": "monitor2",
+            "monitor_key": "aaabbbcccddd",
+            "monitor_url": "monitor2.com",
+            "gossiper_url": "http://localhost:5500"
           }
         ]
       }

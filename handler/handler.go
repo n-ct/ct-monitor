@@ -1,11 +1,13 @@
 package handler
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	"net/http"
 	"github.com/golang/glog"
+	"fmt"
+
+	mtr "ct-monitor"
 	"ct-monitor/monitor"
-	//"fmt"
 )
 
 type Handler struct {
@@ -57,39 +59,52 @@ func writeErrorResponse(rw *http.ResponseWriter, status int, body string) {
 
 func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	glog.V(1).Infoln("Received Audit Request")
-	if req.Method != "GET" {
+	if req.Method != "POST" {
 		writeWrongMethodResponse(&rw, "GET")
 		return
 	}
 
-	/*var sthData *types.SignedLogRoot
-	sthData = h.t.GetSth()
-	if(sthData==nil) {
-		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Sth is nil pointer"))
+	decoder := json.NewDecoder(req.Body)
+	var a PostRevocationRequest
+	if err := decoder.Decode(&a); err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid AddRevocation Request: %v", err))
+		return
 	}
 
-	// convert to json
-	encoder := json.NewEncoder(rw)
-	if err := encoder.Encode(*sthData); err != nil {
-		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Couldn't encode STH to return: %v", err))
+	/*if err := h.t.AddNode(a.Serial); err != nil {
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Unable to store revocation: %v", err))
 		return
 	}
 	*/
+	rw.WriteHeader(http.StatusOK)
 }
 
 
 func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
 	glog.V(1).Infoln("Received NewInfo Request")
-	if req.Method != "GET" {
-		writeWrongMethodResponse(&rw, "GET")
+	if req.Method != "POST" {
+		writeWrongMethodResponse(&rw, "POST")
 		return
 	}
+
+	decoder := json.NewDecoder(req.Body)
+	var ctObject mtr.CTObject
+	if err := decoder.Decode(&ctObject); err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid NewInfo Request: %v", err))
+		return
+	}
+
+	if err := h.m.AddEntry(&ctObject); err != nil {
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Unable to store object: %v", err))
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) MonitorDomain(rw http.ResponseWriter, req *http.Request){
 	glog.V(1).Infoln("Received MonitorDomain Request")
-	if req.Method != "GET" {
-		writeWrongMethodResponse(&rw, "GET")
+	if req.Method != "POST" {
+		writeWrongMethodResponse(&rw, "POST")
 		return
 	}
 }

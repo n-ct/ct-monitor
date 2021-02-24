@@ -129,6 +129,15 @@ func (v VersionData) String() string {
 	return fmt.Sprintf("%d.%d", v.Major, v.Minor)
 }
 
+// TypeID const variables
+const (
+	STHTypeID = "STH"
+	STHPOCTypeID = "STH_POC"
+	AlertTypeID = "ALERT"
+	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
+	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
+)
+
 type CTObject struct {
 	TypeID 		string // What type of object is found in the blob
 	Version		VersionData	// Version of the CTObject
@@ -139,14 +148,7 @@ type CTObject struct {
 	Blob 		[]byte // An object used in CT converted to byte array
 }
 
-// TypeID const variables
-const (
-	STHTypeID = "STH"
-	STHPOCTypeID = "STH_POC"
-	AlertTypeID = "ALERT"
-	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
-	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
-)
+
 
 func ConstructCTObject(i interface{}) *CTObject {
 	var typeID string
@@ -191,6 +193,7 @@ func ConstructCTObject(i interface{}) *CTObject {
 }
 
 // Takes a *CTObject and returns the struct found within the blob
+// TODO maybe make into method
 func DeconstructCTObject(ctObject *CTObject) interface{} {
 	switch typeID := ctObject.TypeID; typeID {
 	case STHTypeID:
