@@ -9,9 +9,9 @@ import (
 	"time"
 	"github.com/golang/glog"
 
-	"ct-monitor/monitor"
-	"ct-monitor/handler"
-	mtr "ct-monitor"
+	"github.com/n-ct/ct-monitor/monitor"
+	"github.com/n-ct/ct-monitor/handler"
+	mtr "github.com/n-ct/ct-monitor"
 
 )
 

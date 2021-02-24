@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"bytes"
 
-	mtr "ct-monitor"
-	"ct-monitor/entitylist"
-	"ct-monitor/utils"
+	mtr "github.com/n-ct/ct-monitor"
+	"github.com/n-ct/ct-monitor/entitylist"
+	"github.com/n-ct/ct-monitor/utils"
 	//"ct-monitor/signature"
 )
 

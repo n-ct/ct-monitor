@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ct-monitor/utils"
+	"github.com/n-ct/ct-monitor/utils"
 )
 
 // LogList holds a collection of CT logs, grouped by operator.

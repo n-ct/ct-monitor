@@ -8,7 +8,7 @@ import (
 
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/jsonclient"
-	"ct-monitor/entitylist"
+	"github.com/n-ct/ct-monitor/entitylist"
 )
 
 // LogClient represents a client for a given CT Log instance

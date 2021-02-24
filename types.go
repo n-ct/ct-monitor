@@ -3,7 +3,7 @@ package mtr
 import (
 	"fmt"
 	ct "github.com/google/certificate-transparency-go"
-	"ct-monitor/signature"
+	"github.com/n-ct/ct-monitor/signature"
 	"encoding/json"
 	"bytes"
 )

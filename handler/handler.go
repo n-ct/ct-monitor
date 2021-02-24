@@ -6,8 +6,8 @@ import (
 	"github.com/golang/glog"
 	"fmt"
 
-	mtr "ct-monitor"
-	"ct-monitor/monitor"
+	mtr "github.com/n-ct/ct-monitor"
+	"github.com/n-ct/ct-monitor/monitor"
 )
 
 type Handler struct {

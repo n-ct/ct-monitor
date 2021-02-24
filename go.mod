@@ -1,4 +1,4 @@
-module ct-monitor
+module github.com/n-ct/ct-monitor
 
 go 1.15
 
