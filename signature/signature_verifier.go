@@ -1,9 +1,10 @@
 package signature
 
 import (
-	"crypto"
 	"fmt"
+	"crypto"
 	"encoding/json"
+
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/tls"
 )
@@ -11,20 +12,37 @@ import (
 // VerifySignature verifies that the passed in signature over data was created by the given PublicKey.
 func VerifySignature(strPubKey string, data interface{}, sig ct.DigitallySigned) error {
 	pubKey, err := ct.PublicKeyFromB64(strPubKey)
+	if err != nil {
+		return fmt.Errorf("error parsing string PublicKey for signature verification: %w", err)
+	}
 	byteData, err := SerializeData(data)
+	if err != nil {
+		return fmt.Errorf("error serializing %T type struct for signature verification: %w", data, err)
+	}
 	err = tls.VerifySignature(pubKey, byteData, tls.DigitallySigned(sig))
 	return err
 }
 
-func SerializeData(i interface{}) ([]byte, error) {
+// SerializeData converts the given object into a byte array
+// CertificateTransparencyGo repository signed objects are Marshaled in their own way
+func SerializeData(i interface{}) (byteArr []byte, err error) {
 	switch i.(type) {
 	case ct.TreeHeadSignature:
-		return tls.Marshal(i)
+		byteArr, err = tls.Marshal(i)
+		if err != nil {
+			return byteArr, fmt.Errorf("error certificate-transparency-go serializing %T type struct: %w", i, err)
+		}
 	default:
-		return json.Marshal(i)
+		byteArr, err = json.Marshal(i)
+		if err != nil {
+			return byteArr, fmt.Errorf("error serializing %T type struct: %v", i, err)
+		}
 	}
+	return byteArr, nil
 }
 
+// GenerateHash produces the hash of the given data.
+// The Algorithm is of type HashAlgorithm, which is found in certificate-transparency-go/tls package
 func GenerateHash(algo tls.HashAlgorithm, data []byte) ([]byte, crypto.Hash, error) {
 	var hashType crypto.Hash
 	switch algo {
@@ -41,7 +59,7 @@ func GenerateHash(algo tls.HashAlgorithm, data []byte) ([]byte, crypto.Hash, err
 	case tls.SHA512:
 		hashType = crypto.SHA512
 	default:
-		return nil, hashType, fmt.Errorf("unsupported Algorithm.Hash in signature: %v", algo)
+		return nil, hashType, fmt.Errorf("unsupported Algorithm.Hash: %v", algo)
 	}
 
 	hasher := hashType.New()
