@@ -7,11 +7,12 @@ import (
 	"os/signal"
 	"net/http"
 	"time"
-	"github.com/golang/glog"
+	"syscall"
 
+	"github.com/golang/glog"
+	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/monitor"
 	"github.com/n-ct/ct-monitor/handler"
-	mtr "github.com/n-ct/ct-monitor"
 
 )
 
@@ -21,12 +22,13 @@ func main(){
 
 	// Handle user interrupt to stop the Monitor 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initalize the variables of the Monitor
 	monitorInstance, err := monitor.InitializeMonitor()
 	if err != nil {
 		glog.Infoln("Couldn't create monitor")
+		glog.Flush()
 		os.Exit(-1)
 	}
 
@@ -84,5 +86,6 @@ func shutdownServer(server *http.Server, returnCode int){
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	server.Shutdown(ctx)
 	glog.Infoln("Shutting down Server")
+	glog.Flush()
 	os.Exit(returnCode)
 }

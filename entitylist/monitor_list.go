@@ -86,3 +86,15 @@ func (ml *MonitorList) FindMonitorByMonitorID(monitorID string) *MonitorInfo {
 	}
 	return nil
 }
+
+// FindMonitorByMonitorID finds the MonitorInfo with the given url string
+func (ml *MonitorList) FindMonitorByMonitorURL(monitorURL string) *MonitorInfo {
+	for _, op := range ml.MonitorOperators {
+		for _, mon := range op.Monitors {
+			if (strings.Contains(mon.MonitorURL, monitorURL)){
+				return mon 
+			}
+		}
+	}
+	return nil
+}

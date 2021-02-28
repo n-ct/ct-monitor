@@ -75,9 +75,6 @@ func (c *LogClient) getSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 	treeHeadSignature := c.ConstructTreeHeadSignatureFromSTH(*sth)
 	logID := c.LogInfo.LogID
 	STHData := &SignedTreeHeadData{logID, treeHeadSignature, sth.TreeHeadSignature}
-	fmt.Println()
-	fmt.Println(STHData.TreeHeadData.TreeSize)
-	fmt.Println()
 	return STHData, nil
 }
 

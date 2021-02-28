@@ -65,17 +65,24 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	}
 
 	decoder := json.NewDecoder(req.Body)
-	var a PostRevocationRequest
-	if err := decoder.Decode(&a); err != nil {
-		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid AddRevocation Request: %v", err))
+	var ctObject mtr.CTObject
+	if err := decoder.Decode(&ctObject); err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid Audit Request: %v", err))
 		return
 	}
 
-	/*if err := h.t.AddNode(a.Serial); err != nil {
-		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Unable to store revocation: %v", err))
+	if ctObject.TypeID != mtr.STHTypeID{
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Invalid STHCTObject"))
 		return
 	}
-	*/
+
+	auditResp := h.m.AuditSTH(&ctObject)
+
+	encoder := json.NewEncoder(rw)
+	if err := encoder.Encode(*auditResp); err != nil {
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Couldn't encode Audit Response to return: %v", err))
+		return
+	}
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -98,6 +105,7 @@ func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
 		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Unable to store object: %v", err))
 		return
 	}
+	
 	rw.WriteHeader(http.StatusOK)
 }
 

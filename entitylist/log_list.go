@@ -68,6 +68,16 @@ type LogInfo struct {
 	TemporalInterval *TemporalInterval `json:"temporal_interval,omitempty"`
 	// Type indicates the purpose of this log, e.g. "test" or "prod".
 	Type string `json:"log_type,omitempty"`
+	// MMDEnd indicates the utc hour and minutes that the mmd of the log will end. By default, seconds will be 0
+	MMDEnd *ClockTime `json:"mmd_end"`
+	// MMDAccessDelay indicates the amount of seconds that one can access the daily object after MMDEnd
+	MMDAccessDelay uint32 `json:"mmd_access_delay"`
+}
+
+type ClockTime struct {
+	Hour uint8 `json:"hour"`
+	Minute uint8 `json:"minute"`
+	Second uint8 `json:"second"`
 }
 
 // TemporalInterval is a time range.

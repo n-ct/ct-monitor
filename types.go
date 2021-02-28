@@ -2,10 +2,12 @@ package mtr
 
 import (
 	"fmt"
-	ct "github.com/google/certificate-transparency-go"
-	"github.com/n-ct/ct-monitor/signature"
 	"encoding/json"
 	"bytes"
+
+	ct "github.com/google/certificate-transparency-go"
+	"github.com/google/certificate-transparency-go/tls"
+	"github.com/n-ct/ct-monitor/signature"
 )
 
 // Endpoint path const variables
@@ -13,6 +15,16 @@ const (
 	AuditPath 		  = "/ct/v1/audit"
 	NewInfoPath		  = "/ct/v1/new-info"
 	MonitorDomainPath = "ct/v1/monitor-domain"
+)
+
+// TypeID const variables
+const (
+	STHTypeID = "STH"
+	STHPOCTypeID = "STH_POC"
+	AlertTypeID = "ALERT"
+	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
+	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
+	AuditOKTypeID = "AUDIT_OK"
 )
 
 type SignedTreeHeadData struct {
@@ -61,6 +73,8 @@ type NonRespondingLogPOM struct {
 	AlertList []Alert
 }
 
+
+
 // TODO Also add support for STH_POC
 func CreateConflictingSTHPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) {
 	if !(obj1.TypeID == "STH" || obj1.TypeID == "STH_POC") || !(obj2.TypeID == "STH" || obj2.TypeID == "STH_POC"){
@@ -95,6 +109,26 @@ type AuditOK struct {
 	Signature 	ct.DigitallySigned
 }
 
+// TODO finish this function. Will need signer before I do this
+func CreateAuditOK(sigSigner *signature.Signer, sth *SignedTreeHeadData) (*CTObject, error){
+	var signer string
+	version := VersionData{1,0,0}
+
+	// Create fields of AuditOk CTbject
+	typeID := AuditOKTypeID
+	timestamp := sth.TreeHeadData.Timestamp
+	subject := sth.LogID
+
+	sig, err := sigSigner.CreateSignature(tls.SHA256, sth)
+	auditOK := AuditOK{*sth, sig}
+	blob, _ := signature.SerializeData(auditOK)
+	digest, _, _ := signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
+	
+	// Create the CTObject PoM
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, err
+}
+
 type ObjectIdentifier struct{
 	First string
 	Second string
@@ -106,7 +140,7 @@ type ObjectIdentifier struct{
 //Alerts [Subject][Signer][Timestamp][Version]
 //The rest [TypeID][Subject|Signer][Timestamp][Version]
 func (data *CTObject) Identifier() (ObjectIdentifier){
-	if data.TypeID == "Alert"{
+	if data.TypeID == AlertTypeID{
 		return ObjectIdentifier{First: data.Subject, Second: data.Signer, Third: data.Timestamp, Fourth: data.Version.String(),};
 	}
 
@@ -129,14 +163,7 @@ func (v VersionData) String() string {
 	return fmt.Sprintf("%d.%d", v.Major, v.Minor)
 }
 
-// TypeID const variables
-const (
-	STHTypeID = "STH"
-	STHPOCTypeID = "STH_POC"
-	AlertTypeID = "ALERT"
-	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
-	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
-)
+
 
 type CTObject struct {
 	TypeID 		string // What type of object is found in the blob
@@ -147,8 +174,6 @@ type CTObject struct {
 	Digest 		[]byte // Typically the hash of the blob
 	Blob 		[]byte // An object used in CT converted to byte array
 }
-
-
 
 func ConstructCTObject(i interface{}) *CTObject {
 	var typeID string
@@ -212,4 +237,21 @@ func DeconstructCTObject(ctObject *CTObject) interface{} {
 		return alert
 	}
 	return nil
+}
+
+// Most likely will make these methods for ctobject later
+func ExtractSTHFromSTHPOCCTObject(ctObject *CTObject) *SignedTreeHeadData{
+	if ctObject.TypeID != STHPOCTypeID{
+		return nil
+	}
+	sth_poc := DeconstructCTObject(ctObject).(SignedTreeHeadWithConsistencyProof)
+	return &sth_poc.SignedTreeHead
+}
+
+func ExtractPOCFromSTHPOCCTObject(ctObject *CTObject) *ConsistencyProofData{
+	if ctObject.TypeID != STHPOCTypeID{
+		return nil
+	}
+	sth_poc := DeconstructCTObject(ctObject).(SignedTreeHeadWithConsistencyProof)
+	return &sth_poc.ConsistencyProof
 }
