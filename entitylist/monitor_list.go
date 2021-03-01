@@ -18,59 +18,61 @@
 package entitylist
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+	"encoding/json"
 
 	"github.com/n-ct/ct-monitor/utils"
 )
 
-// LogList holds a collection of CT logs, grouped by operator.
+// MonitorList holds a collection of CT Monitors, grouped by operator.
 type MonitorList struct {
-	// Operators is a list of CT log operators and the logs they operate.
+	// MonitorOperators is a list of Monitor operators and the Monitors they operate.
 	MonitorOperators []*MonitorOperator `json:"operators"`
 }
 
-// Operator holds a collection of CT logs run by the same organisation.
+// MonitorOperator holds a collection of Monitors run by the same organisation.
 // It also provides information about that organisation, e.g. contact details.
 type MonitorOperator struct {
-	// Name is the name of the CT log operator.
+	// Name is the name of the CT Monitor Operator.
 	Name string `json:"name"`
 	// Email lists the email addresses that can be used to contact this log
 	// operator.
 	Email []string `json:"email"`
-	// Logs is a list of CT logs run by this operator.
+	// Monitors is a list of CT Monitors run by this operator.
 	Monitors []*MonitorInfo `json:"monitors"`
 }
 
-// Log describes a single CT log.
+// MonitorInfo describes a single Monitor.
 type MonitorInfo struct {
-	// LogID is the SHA-256 hash of the log's public key.
-	//LogID []byte `json:"log_id"`
+	// MonitorID is the SHA-256 hash of the Monitor's public key.
 	MonitorID string `json:"monitor_id"`
 	// Key is the public key with which signatures can be verified.
 	MonitorKey string `json:"monitor_key"`
-	// URL is the address of the HTTPS API.
+	// URL is the address of the HTTPS API for the Monitor.
 	MonitorURL string `json:"monitor_url"`
-	// URL is the address of the HTTPS API.
+	// URL is the address of the HTTPS API for the Gossiper.
 	GossiperURL string `json:"gossiper_url"`
 }
 
 // Create new MonitorList
-func NewMonitorList(monitorListName string) *MonitorList{
-	byteData := utils.JSONFiletoBytes(monitorListName)
+func NewMonitorList(monitorListName string) (*MonitorList, error) {
+	byteData, err := utils.FiletoBytes(monitorListName)
+	if err != nil {
+		return nil, fmt.Errorf("error opening %s to create new MonitorList: %w", monitorListName, err)
+	}
 	monitorList, err := NewMonitorListFromJSON(byteData)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("error reading %s to create new MonitorList: %w", monitorListName, err)
 	}
-	return monitorList
+	return monitorList, nil
 }
 
 // NewFromJSON creates a LogList from JSON encoded data.
 func NewMonitorListFromJSON(mlData []byte) (*MonitorList, error) {
 	var ml MonitorList
 	if err := json.Unmarshal(mlData, &ml); err != nil {
-		return nil, fmt.Errorf("failed to parse log list: %v", err)
+		return nil, fmt.Errorf("failed to parse monitor list: %v", err)
 	}
 	return &ml, nil
 }

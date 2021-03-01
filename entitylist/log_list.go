@@ -18,10 +18,10 @@
 package entitylist
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+	"encoding/json"
 
 	"github.com/n-ct/ct-monitor/utils"
 )
@@ -74,6 +74,7 @@ type LogInfo struct {
 	MMDAccessDelay uint32 `json:"mmd_access_delay"`
 }
 
+// ClockTime has the UTC hour, minute, and second corresponding to a specific time in a day
 type ClockTime struct {
 	Hour uint8 `json:"hour"`
 	Minute uint8 `json:"minute"`
@@ -101,8 +102,6 @@ const (
 	RetiredLogStatus
 	RejectedLogStatus
 )
-
-//go:generate stringer -type=LogStatus
 
 // LogStates are the states that a CT log can be in, from the perspective of a
 // user agent. Only one should be set - this is the current state.
@@ -189,13 +188,16 @@ func (ls *LogStates) Active() (*LogState, *ReadOnlyLogState) {
 }
 
 // Create new LogList
-func NewLogList(logListName string) *LogList{
-	byteData := utils.JSONFiletoBytes(logListName)
+func NewLogList(logListName string) (*LogList, error) {
+	byteData, err := utils.FiletoBytes(logListName)
+	if err != nil {
+		return nil, fmt.Errorf("error opening %s to create new LogList: %w", logListName, err)
+	}
 	logList, err := NewLogListFromJSON(byteData)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("error reading %s to create new LogList: %w", logListName, err)
 	}
-	return logList
+	return logList, nil
 }
 
 // NewFromJSON creates a LogList from JSON encoded data.
