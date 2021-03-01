@@ -14,7 +14,19 @@ import (
 // LogClient represents a client for a given CT Log instance
 type LogClient struct {
 	jsonclient.JSONClient
-	LogInfo entitylist.LogInfo		// loglist.Log Structthat contains the json data about the logger found in loglist.json
+	LogInfo entitylist.LogInfo	// loglist.Log Struct that contains the json data about the logger found in loglist.json
+}
+
+// Create a LogClient instance to access the log and produce ct v2 data
+func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
+	uri := log.URL	
+	client := &http.Client{}	
+	opts := jsonclient.Options{}
+	logClient, err := New(uri, client, opts, log)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new LogClient for uri %s: %v", uri, err)
+	}
+	return logClient, nil
 }
 
 // New constructs a new LogClient instance.
@@ -31,35 +43,22 @@ func New(uri string, hc *http.Client, opts jsonclient.Options, log *entitylist.L
 	return &LogClient{*logClient, *log}, err
 }
 
-// Create a LogClient instance to access the log and produce ct v2 data
-func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
-	uri := log.URL	
-	sPubKey := log.Key
-
-	client := &http.Client{}	
-	opts := jsonclient.Options{}
-	logClient, err := New(uri, client, opts, log)
-	if err != nil {
-		fmt.Printf("Failed to create logClient")
-		return nil, err;
-	}
-
-	// Manually create the verifier because passing in string publicKey to opts doesn't seem to work
-	// TODO remove this and just use the other verifier
-	pubKey, err := ct.PublicKeyFromB64(sPubKey)
-	verifier, err := ct.NewSignatureVerifier(pubKey)
-	logClient.Verifier = verifier
-	return logClient, err
-}
-
 // RspError represents a server error including HTTP information.
 type RspError = jsonclient.RspError
 
+// Get STH and encapsulate it within a CTObject
+func (c *LogClient) GetSTH(ctx context.Context) (*CTObject, error) {
+	sth, err := c.getSTH(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get STH from Logger %s: %w", c.LogInfo.LogID, err)
+	}
+	return ConstructCTObject(sth), nil
+}
+
 // GetSTH retrieves the current STH from the log and produces a SignedTreeHeadData object
-// Returns a populated SignedTreeHead, or a non-nil error (which may be of type
-// RspError if a raw http.Response is available).
+// Returns a populated SignedTreeHead which is converted into SignedTreeHeaData, or a 
+//non-nil error (which may be of type RspError if a raw http.Response is available).
 func (c *LogClient) getSTH(ctx context.Context) (*SignedTreeHeadData, error) {
-	// Parse basic response
 	var resp ct.GetSTHResponse
 	httpRsp, body, err := c.GetAndParse(ctx, ct.GetSTHPath, nil, &resp)
 	if err != nil {
@@ -72,28 +71,15 @@ func (c *LogClient) getSTH(ctx context.Context) (*SignedTreeHeadData, error) {
 		return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
 	}
 
-	treeHeadSignature := c.ConstructTreeHeadSignatureFromSTH(*sth)
+	// Construct ctv2 SignedTreeHeadData
+	treeHeadSignature := c.constructTreeHeadSignatureFromSTH(sth)
 	logID := c.LogInfo.LogID
 	STHData := &SignedTreeHeadData{logID, treeHeadSignature, sth.TreeHeadSignature}
 	return STHData, nil
 }
 
-func (c *LogClient) GetSTH(ctx context.Context) (*CTObject, error) {
-	sth, _ := c.getSTH(ctx)
-	return ConstructCTObject(sth), nil
-}
-
-// VerifySTHSignature checks the signature in sth, returning any error encountered or nil if verification is successful.
-func (c *LogClient) VerifySTHSignature(sth ct.SignedTreeHead) error {
-	if c.Verifier == nil {
-		// Can't verify signatures without a verifier
-		return nil
-	}
-	return c.Verifier.VerifySTHSignature(sth)
-}
-
-// ConstructTreeHeadSignatureFromSTH constructs a TreeHeadSignature object from sth
-func (c *LogClient) ConstructTreeHeadSignatureFromSTH(sth ct.SignedTreeHead) (ct.TreeHeadSignature) {
+// Construct a TreeHeadSignature object from normal Logger response sth
+func (c *LogClient) constructTreeHeadSignatureFromSTH(sth *ct.SignedTreeHead) ct.TreeHeadSignature {
 	treeHeadSignature := ct.TreeHeadSignature{
 		Version:        sth.Version,
 		SignatureType:  ct.TreeHashSignatureType,
@@ -104,8 +90,22 @@ func (c *LogClient) ConstructTreeHeadSignatureFromSTH(sth ct.SignedTreeHead) (ct
 	return treeHeadSignature
 }
 
-// GetSTHConsistency retrieves the consistency proof between two tree_sizes of the tree
-func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64) (*ConsistencyProofData, error) {
+// Get STH and ConsistencyProof to construt SignedTreeHeadWithConsistencyProof CTObject
+func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
+	sth, err := c.getSTH(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SignedTreeHeadWithConsistencyProof CTObject: %w", err)
+	}
+	poc, err := c.getConsistencyProof(ctx, 100, 1000)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SignedTreeHeadWithConsistencyProof CTObject: %w", err)
+	}
+	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
+	return ConstructCTObject(sthWithPoc), nil
+}
+
+// Retrieves the consistency proof between two tree_sizes of the tree
+func (c *LogClient) getConsistencyProof(ctx context.Context, first, second uint64) (*ConsistencyProofData, error) {
 	base10 := 10
 	params := map[string]string{
 		"first":  strconv.FormatUint(first, base10),
@@ -113,15 +113,16 @@ func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64)
 	}
 	var resp ct.GetSTHConsistencyResponse
 	if _, _, err := c.GetAndParse(ctx, ct.GetSTHConsistencyPath, params, &resp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get ConsistencyProof from Logger %s: %w", c.LogInfo.LogID, err)
 	}
 
+	// Construct ctv2 ConsistencyProofData
 	logID := c.LogInfo.LogID
 	consistencyProof := &ConsistencyProofData{logID, first, second, resp.Consistency}
 	return consistencyProof, nil
 }
 
-// GetEntryAndProof returns a log entry and audit path for the index of a leaf.
+// Return a log entry and audit path for the given index of a leaf.and treeSize of the tree
 func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64) (*InclusionProofData, []byte, error) {
 	base10 := 10
 	params := map[string]string{
@@ -133,22 +134,8 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 		return nil, nil, err
 	}
 
+	// Construct ctv2 InclusionProofData
 	logID := c.LogInfo.LogID
 	inclusionProof := &InclusionProofData{logID, treeSize, index, resp.AuditPath}
 	return inclusionProof, resp.LeafInput,  nil
-}
-
-func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
-	sth, err := c.getSTH(ctx)
-	if err != nil {
-		fmt.Printf("Failed to create STH")
-		return nil, nil	// TODO change to a valid error
-	}
-	poc, err := c.GetSTHConsistency(ctx, 100, 1000)
-	if err != nil {
-		fmt.Printf("Failed to get Entry and Proof")
-		return nil, nil // TODO change to a valid error
-	}
-	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
-	return ConstructCTObject(sthWithPoc), nil
 }
