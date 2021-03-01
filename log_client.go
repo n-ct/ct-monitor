@@ -8,6 +8,7 @@ import (
 
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/jsonclient"
+
 	"github.com/n-ct/ct-monitor/entitylist"
 )
 

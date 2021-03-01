@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"encoding/json"
 	"net/http"
+
 	"github.com/golang/glog"
-	"fmt"
 
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/monitor"
@@ -16,35 +17,6 @@ type Handler struct {
 
 func NewHandler(m *monitor.Monitor) Handler {
 	return Handler{m}
-}
-
-// get-sth, post-revocation, get-inclusion-proof are json-encoded
-// for ease of use right now, can be changed later
-// get-ocsp uses ocsp request/response ietf specification
-
-// Something to know is that for json decoding to work correctly, all struct var's must be capitalized
-type GetInclusionProofRequest struct {
-	Serial uint64
-}
-
-type GetInclusionProofResponse struct {
-	Proof [][]byte
-}
-
-// Ocsp Request/Response types defined in revocation-server/ocsp
-// asn.1/der encoded
-
-type PostRevocationRequest struct {
-	Serial uint64
-}
-
-// for mass-revocation event, or for testing
-type PostMultipleRevocationsRequest struct {
-	Serials []uint64
-}
-
-type ProofResponse struct {
-	Proof [][]byte
 }
 
 func writeWrongMethodResponse(rw *http.ResponseWriter, allowed string) {
@@ -72,12 +44,12 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	}
 
 	if ctObject.TypeID != mtr.STHTypeID{
-		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Invalid STHCTObject"))
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Invalid STH CTObject. Need %s", mtr.STHTypeID))
 		return
 	}
 
+	// Get ctObject audit response. This can either be PoM CTObject or AuditOK CTObject
 	auditResp := h.m.AuditSTH(&ctObject)
-
 	encoder := json.NewEncoder(rw)
 	if err := encoder.Encode(*auditResp); err != nil {
 		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Couldn't encode Audit Response to return: %v", err))
@@ -105,7 +77,6 @@ func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
 		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Unable to store object: %v", err))
 		return
 	}
-	
 	rw.WriteHeader(http.StatusOK)
 }
 
