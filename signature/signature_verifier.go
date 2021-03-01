@@ -10,6 +10,7 @@ import (
 )
 
 // VerifySignature verifies that the passed in signature over data was created by the given PublicKey.
+// If the signature is valid, function will return nil
 func VerifySignature(strPubKey string, data interface{}, sig ct.DigitallySigned) error {
 	pubKey, err := ct.PublicKeyFromB64(strPubKey)
 	if err != nil {

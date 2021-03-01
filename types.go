@@ -7,6 +7,7 @@ import (
 
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/tls"
+
 	"github.com/n-ct/ct-monitor/signature"
 )
 
@@ -41,7 +42,7 @@ type ConsistencyProofData struct {
 }
 
 type SignedTreeHeadWithConsistencyProof struct {
-	SignedTreeHead SignedTreeHeadData
+	SignedTreeHead	 SignedTreeHeadData
 	ConsistencyProof ConsistencyProofData
 }
 
@@ -73,66 +74,15 @@ type NonRespondingLogPOM struct {
 	AlertList []Alert
 }
 
-
-
-// TODO Also add support for STH_POC
-func CreateConflictingSTHPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) {
-	if !(obj1.TypeID == "STH" || obj1.TypeID == "STH_POC") || !(obj2.TypeID == "STH" || obj2.TypeID == "STH_POC"){
-		return nil, fmt.Errorf("Not valid STH or STH_POC")
-	}
-
-	if bytes.Equal(obj1.Digest, obj2.Digest){
-		return nil, fmt.Errorf("STHs are not conflicting")
-	}
-
-	// CURRENTLY ONLY HAVE SUPPORT FOR STH
-	var signer string
-	version := VersionData{1,0,0}
-	sth1 := DeconstructCTObject(obj1).(SignedTreeHeadData)
-	sth2 := DeconstructCTObject(obj2).(SignedTreeHeadData)
-
-	// Create fields of PoM CTObject
-	typeID := ConflictingSTHPOMTypeID
-	timestamp := sth1.TreeHeadData.Timestamp
-	subject := sth1.LogID
-	proof := ConflictingSTHPOM{sth1, sth2}
-	blob, _ := signature.SerializeData(proof)
-	digest, _, _ := signature.GenerateHash(sth1.Signature.Algorithm.Hash, blob)
-	
-	// Create the CTObject PoM
-	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
-	return ctObject, nil
-}
-
 type AuditOK struct {
 	STH			SignedTreeHeadData
 	Signature 	ct.DigitallySigned
 }
 
-// TODO finish this function. Will need signer before I do this
-func CreateAuditOK(sigSigner *signature.Signer, sth *SignedTreeHeadData) (*CTObject, error){
-	var signer string
-	version := VersionData{1,0,0}
-
-	// Create fields of AuditOk CTbject
-	typeID := AuditOKTypeID
-	timestamp := sth.TreeHeadData.Timestamp
-	subject := sth.LogID
-
-	sig, err := sigSigner.CreateSignature(tls.SHA256, sth)
-	auditOK := AuditOK{*sth, sig}
-	blob, _ := signature.SerializeData(auditOK)
-	digest, _, _ := signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
-	
-	// Create the CTObject PoM
-	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
-	return ctObject, err
-}
-
 type ObjectIdentifier struct{
-	First string
+	First  string
 	Second string
-	Third uint64
+	Third  uint64
 	Fourth string
 }
 
@@ -154,16 +104,14 @@ func (data *CTObject) Identifier() (ObjectIdentifier){
 }
 
 type VersionData struct {
-	Major uint32
-	Minor uint32
-	Release uint32
+	Major 	uint32	// Major version number
+	Minor 	uint32	// Minor version number
+	Release uint32	// Release version number
 }
 
 func (v VersionData) String() string {
 	return fmt.Sprintf("%d.%d", v.Major, v.Minor)
 }
-
-
 
 type CTObject struct {
 	TypeID 		string // What type of object is found in the blob
@@ -175,7 +123,82 @@ type CTObject struct {
 	Blob 		[]byte // An object used in CT converted to byte array
 }
 
-func ConstructCTObject(i interface{}) *CTObject {
+// Deconstruct STH from both STH and STHPOC CTObject
+func (c *CTObject) DeconstructSTH() (*SignedTreeHeadData, error) {
+	if c.TypeID == STHTypeID {
+		var sth SignedTreeHeadData 
+		err := json.Unmarshal(c.Blob, &sth)
+		return &sth, fmt.Errorf("error deconstructing STH from %s CTObject: %v", c.TypeID, err)
+	}
+	if c.TypeID == STHPOCTypeID {
+		sthPOC, err := c.deconstructSTHPOC()
+		return &sthPOC.SignedTreeHead, fmt.Errorf("error deconstructing STH from %s CTObject: %w", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct POC from STHPOC CTObject
+func (c *CTObject) DeconstructPOC() (*ConsistencyProofData, error) {
+	if c.TypeID == STHPOCTypeID {
+		sth_poc, err := c.deconstructSTHPOC()
+		return &sth_poc.ConsistencyProof, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct POC from STHPOC CTObject
+func (c *CTObject) deconstructSTHPOC() (*SignedTreeHeadWithConsistencyProof, error) {
+	if c.TypeID == STHPOCTypeID {
+		var sth_poc SignedTreeHeadWithConsistencyProof 
+		err := json.Unmarshal(c.Blob, &sth_poc)
+		return &sth_poc, fmt.Errorf("error deconstructing STH+POC from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct Alert CTObject
+func (c *CTObject) DeconstructAlert() (*Alert, error) {
+	if c.TypeID == AlertTypeID {
+		var alert Alert
+		err := json.Unmarshal(c.Blob, &alert)
+		return &alert, fmt.Errorf("error deconstructing Alert from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct AuditOK CTObject
+func (c *CTObject) DeconstructAuditOK() (*AuditOK, error) {
+	if c.TypeID == AuditOKTypeID {
+		var auditOK AuditOK
+		err := json.Unmarshal(c.Blob, &auditOK)
+		return &auditOK, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct ConflictingSTHPOM CTObject
+func (c *CTObject) DeconstructConflictingSTHPOM() (*ConflictingSTHPOM, error) {
+	if c.TypeID == ConflictingSTHPOMTypeID {
+		var pom ConflictingSTHPOM
+		err := json.Unmarshal(c.Blob, &pom)
+		return &pom, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Deconstruct ConflictingSTHPOM CTObject
+func (c *CTObject) DeconstructNonRespondingLogPOM() (*NonRespondingLogPOM, error) {
+	if c.TypeID == NonRespondingLogPOMTypeID {
+		var pom NonRespondingLogPOM
+		err := json.Unmarshal(c.Blob, &pom)
+		return &pom, fmt.Errorf("error deconstructing NonRespondingLogPOM from %s CTObject: %v", c.TypeID, err)
+	}
+	return nil, nil
+}
+
+// Given a CT v2 Object, construct a CTObject
+func ConstructCTObject(i interface{}) (*CTObject, error) {
+	var err error
 	var typeID string
 	version := VersionData{1,0,0}
 	var timestamp uint64
@@ -190,68 +213,119 @@ func ConstructCTObject(i interface{}) *CTObject {
 		typeID = STHTypeID
 		timestamp = sth.TreeHeadData.Timestamp
 		signer = sth.LogID
-		blob, _ = signature.SerializeData(sth)
-		digest, _, _ = signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
+		blob, err = signature.SerializeData(sth)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+		}
+		digest, _, err = signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+		}
 	
 	case *Alert:
 		alert := i.(*Alert)
 		typeID = AlertTypeID
 		timestamp = alert.TBS.Timestamp
 		signer = alert.TBS.Signer
-		blob, _ = signature.SerializeData(alert)
-		digest, _, _ = signature.GenerateHash(alert.Signature.Algorithm.Hash, blob)
+		blob, err = signature.SerializeData(alert)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+		}
+		digest, _, err = signature.GenerateHash(alert.Signature.Algorithm.Hash, blob)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+		}
 	
 	case *SignedTreeHeadWithConsistencyProof:
 		sth_poc := i.(*SignedTreeHeadWithConsistencyProof)
 		typeID = STHPOCTypeID
 		timestamp = sth_poc.SignedTreeHead.TreeHeadData.Timestamp
 		signer = sth_poc.SignedTreeHead.LogID
-		blob, _ = signature.SerializeData(sth_poc)
-		digest, _, _ = signature.GenerateHash(sth_poc.SignedTreeHead.Signature.Algorithm.Hash, blob)
+		blob, err = signature.SerializeData(sth_poc)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+		}
+		digest, _, err = signature.GenerateHash(sth_poc.SignedTreeHead.Signature.Algorithm.Hash, blob)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+		}
 	
 	default:
-		fmt.Printf("I don't know about type %T!\n", v)
+		return nil, fmt.Errorf("Invalid type: %T", v)
 	}
 
 	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
-	return ctObject
+	return ctObject, nil
 }
 
-// Takes a *CTObject and returns the struct found within the blob
-// TODO maybe make into method
-func DeconstructCTObject(ctObject *CTObject) interface{} {
-	switch typeID := ctObject.TypeID; typeID {
-	case STHTypeID:
-		var sth SignedTreeHeadData 
-		json.Unmarshal(ctObject.Blob, &sth)
-		return sth
-
-	case STHPOCTypeID:
-		var sth_poc SignedTreeHeadWithConsistencyProof 
-		json.Unmarshal(ctObject.Blob, &sth_poc)
-		return sth_poc
-
-	case AlertTypeID:
-		var alert Alert
-		json.Unmarshal(ctObject.Blob, &alert)
-		return alert
+// Given two CtObjects that contain STH, create PoM of conflicting STHs
+func CreateConflictingSTHPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) {
+	if !(obj1.TypeID == "STH" || obj1.TypeID == "STH_POC") || !(obj2.TypeID == "STH" || obj2.TypeID == "STH_POC"){
+		return nil, fmt.Errorf("Not valid STH or STH_POC CTObjects")
 	}
-	return nil
+
+	if bytes.Equal(obj1.Digest, obj2.Digest){
+		return nil, fmt.Errorf("STHs are not conflicting. Error creating PoM")
+	}
+
+	var signer string
+	version := VersionData{1,0,0} // TODO replace this with a better way to get currentVersion
+	sth1, err := obj1.DeconstructSTH()
+	if err != nil {
+		return nil, fmt.Errorf("error creating ConflictingSTHPOM: %w", err)
+	}
+
+	sth2, err := obj2.DeconstructSTH()
+	if err != nil {
+		return nil, fmt.Errorf("error creating ConflictingSTHPOM: %w", err)
+	}
+
+	// Create fields of the PoM CTObject
+	typeID := ConflictingSTHPOMTypeID
+	timestamp := sth1.TreeHeadData.Timestamp
+	subject := sth1.LogID
+	proof := ConflictingSTHPOM{*sth1, *sth2}
+	blob, err := signature.SerializeData(proof)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing ConflictingSTHPOM serializing data: %w", err)
+	}
+	digest, _, err := signature.GenerateHash(sth1.Signature.Algorithm.Hash, blob)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing ConflictingSTHPOM generating hash: %w", err)
+	}
+	
+	// Create the POM CTObject
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, nil
 }
 
-// Most likely will make these methods for ctobject later
-func ExtractSTHFromSTHPOCCTObject(ctObject *CTObject) *SignedTreeHeadData{
-	if ctObject.TypeID != STHPOCTypeID{
-		return nil
+// Given signer and sth ctobject, create AuditOK
+func CreateAuditOK(sigSigner *signature.Signer, sthCT *CTObject) (*CTObject, error){
+	var signer string
+	version := VersionData{1,0,0}
+	sth, err := sthCT.DeconstructSTH()
+	if err != nil {
+		return nil, fmt.Errorf("error creating AuditOK: %w", err)
 	}
-	sth_poc := DeconstructCTObject(ctObject).(SignedTreeHeadWithConsistencyProof)
-	return &sth_poc.SignedTreeHead
-}
 
-func ExtractPOCFromSTHPOCCTObject(ctObject *CTObject) *ConsistencyProofData{
-	if ctObject.TypeID != STHPOCTypeID{
-		return nil
+	// Create fields of AuditOk CTbject
+	typeID := AuditOKTypeID
+	timestamp := sth.TreeHeadData.Timestamp
+	subject := sth.LogID
+
+	// Sign the STH and create the AuditOK
+	sig, err := sigSigner.CreateSignature(tls.SHA256, sth)
+	auditOK := AuditOK{*sth, *sig}
+	blob, err := signature.SerializeData(auditOK)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing AuditOK serializing data: %w", err)
 	}
-	sth_poc := DeconstructCTObject(ctObject).(SignedTreeHeadWithConsistencyProof)
-	return &sth_poc.ConsistencyProof
+	digest, _, err := signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing AuditOK generating hash: %w", err)
+	}
+	
+	// Create the CTObject PoM
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, nil
 }

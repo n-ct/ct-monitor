@@ -49,7 +49,11 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	}
 
 	// Get ctObject audit response. This can either be PoM CTObject or AuditOK CTObject
-	auditResp := h.m.AuditSTH(&ctObject)
+	auditResp, err := h.m.AuditSTH(&ctObject)
+	if err != nil {
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("failed to audit: %v", err))
+		return
+	}
 	encoder := json.NewEncoder(rw)
 	if err := encoder.Encode(*auditResp); err != nil {
 		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Couldn't encode Audit Response to return: %v", err))

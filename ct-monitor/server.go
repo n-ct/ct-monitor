@@ -1,19 +1,26 @@
 package main 
 
 import (
+	"fmt"
 	"context"
+	"time"
 	"flag"
 	"os"
 	"os/signal"
 	"net/http"
-	"time"
 	"syscall"
 
 	"github.com/golang/glog"
+
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/monitor"
 	"github.com/n-ct/ct-monitor/handler"
+)
 
+var (
+	monitorConfigName = "monitor/monitor_config.json"
+	monitorListName = "entitylist/monitor_list.json"
+	logListName = "entitylist/log_list.json"
 )
 
 func main(){
@@ -25,9 +32,10 @@ func main(){
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initalize the variables of the Monitor
-	monitorInstance, err := monitor.InitializeMonitor()
+	monitorInstance, err := monitor.NewMonitor(monitorConfigName, monitorListName, logListName)
 	if err != nil {
-		glog.Infoln("Couldn't create monitor")
+		fmt.Println("failed to create monitor: %w", err)	// Only for testing purposes
+		glog.Infoln("Couldn't create monitor: %w", err)
 		glog.Flush()
 		os.Exit(-1)
 	}
@@ -45,7 +53,6 @@ func main(){
 	shutdownServer(server, 0)
 }
 
-
 // Sets up the basic monitor http server
 func serverSetup(m *monitor.Monitor) *http.Server{
 	serveMux := handlerSetup(m)
@@ -57,7 +64,7 @@ func serverSetup(m *monitor.Monitor) *http.Server{
 	// start up handles
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-		glog.Exitf("Problem serving: %v\n",err)
+			glog.Exitf("Problem serving: %v\n",err)
 		}
 	}()
 	return server

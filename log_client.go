@@ -53,7 +53,11 @@ func (c *LogClient) GetSTH(ctx context.Context) (*CTObject, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get STH from Logger %s: %w", c.LogInfo.LogID, err)
 	}
-	return ConstructCTObject(sth), nil
+	sthCT, err := ConstructCTObject(sth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get STH from Logger %s: %w", c.LogInfo.LogID, err)
+	}
+	return sthCT, nil
 }
 
 // GetSTH retrieves the current STH from the log and produces a SignedTreeHeadData object
@@ -102,7 +106,11 @@ func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, secon
 		return nil, fmt.Errorf("failed to create SignedTreeHeadWithConsistencyProof CTObject: %w", err)
 	}
 	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
-	return ConstructCTObject(sthWithPoc), nil
+	sthWithPOCCT, err := ConstructCTObject(sthWithPoc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
+	}
+	return sthWithPOCCT, nil
 }
 
 // Retrieves the consistency proof between two tree_sizes of the tree
