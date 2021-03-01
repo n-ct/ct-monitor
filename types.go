@@ -125,75 +125,82 @@ type CTObject struct {
 
 // Deconstruct STH from both STH and STHPOC CTObject
 func (c *CTObject) DeconstructSTH() (*SignedTreeHeadData, error) {
+	var retSTH SignedTreeHeadData
 	if c.TypeID == STHTypeID {
 		var sth SignedTreeHeadData 
 		err := json.Unmarshal(c.Blob, &sth)
-		return &sth, fmt.Errorf("error deconstructing STH from %s CTObject: %v", c.TypeID, err)
+		if err != nil {
+			return nil, fmt.Errorf("error deconstructing STH from %s CTObject: %v", c.TypeID, err)
+		}
+		retSTH = sth
 	}
 	if c.TypeID == STHPOCTypeID {
 		sthPOC, err := c.deconstructSTHPOC()
-		return &sthPOC.SignedTreeHead, fmt.Errorf("error deconstructing STH from %s CTObject: %w", c.TypeID, err)
+		if err != nil {
+			return nil, fmt.Errorf("error deconstructing STH from %s CTObject: %w", c.TypeID, err)
+		}
+		retSTH = sthPOC.SignedTreeHead
 	}
-	return nil, nil
+	return &retSTH, nil
 }
 
 // Deconstruct POC from STHPOC CTObject
 func (c *CTObject) DeconstructPOC() (*ConsistencyProofData, error) {
-	if c.TypeID == STHPOCTypeID {
-		sth_poc, err := c.deconstructSTHPOC()
-		return &sth_poc.ConsistencyProof, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
+	sth_poc, err := c.deconstructSTHPOC()
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &sth_poc.ConsistencyProof, nil
 }
 
 // Deconstruct POC from STHPOC CTObject
 func (c *CTObject) deconstructSTHPOC() (*SignedTreeHeadWithConsistencyProof, error) {
-	if c.TypeID == STHPOCTypeID {
-		var sth_poc SignedTreeHeadWithConsistencyProof 
-		err := json.Unmarshal(c.Blob, &sth_poc)
-		return &sth_poc, fmt.Errorf("error deconstructing STH+POC from %s CTObject: %v", c.TypeID, err)
+	var sth_poc SignedTreeHeadWithConsistencyProof 
+	err := json.Unmarshal(c.Blob, &sth_poc)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing STHWithPOC from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &sth_poc, nil
 }
 
 // Deconstruct Alert CTObject
 func (c *CTObject) DeconstructAlert() (*Alert, error) {
-	if c.TypeID == AlertTypeID {
-		var alert Alert
-		err := json.Unmarshal(c.Blob, &alert)
-		return &alert, fmt.Errorf("error deconstructing Alert from %s CTObject: %v", c.TypeID, err)
+	var alert Alert
+	err := json.Unmarshal(c.Blob, &alert)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing Alert from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &alert, nil
 }
 
 // Deconstruct AuditOK CTObject
 func (c *CTObject) DeconstructAuditOK() (*AuditOK, error) {
-	if c.TypeID == AuditOKTypeID {
-		var auditOK AuditOK
-		err := json.Unmarshal(c.Blob, &auditOK)
-		return &auditOK, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %v", c.TypeID, err)
+	var auditOK AuditOK
+	err := json.Unmarshal(c.Blob, &auditOK)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &auditOK, nil
 }
 
 // Deconstruct ConflictingSTHPOM CTObject
 func (c *CTObject) DeconstructConflictingSTHPOM() (*ConflictingSTHPOM, error) {
-	if c.TypeID == ConflictingSTHPOMTypeID {
-		var pom ConflictingSTHPOM
-		err := json.Unmarshal(c.Blob, &pom)
-		return &pom, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %v", c.TypeID, err)
+	var pom ConflictingSTHPOM
+	err := json.Unmarshal(c.Blob, &pom)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &pom, nil
 }
 
 // Deconstruct ConflictingSTHPOM CTObject
 func (c *CTObject) DeconstructNonRespondingLogPOM() (*NonRespondingLogPOM, error) {
-	if c.TypeID == NonRespondingLogPOMTypeID {
-		var pom NonRespondingLogPOM
-		err := json.Unmarshal(c.Blob, &pom)
-		return &pom, fmt.Errorf("error deconstructing NonRespondingLogPOM from %s CTObject: %v", c.TypeID, err)
+	var pom NonRespondingLogPOM
+	err := json.Unmarshal(c.Blob, &pom)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing NonRespondingLogPOM from %s CTObject: %v", c.TypeID, err)
 	}
-	return nil, nil
+	return &pom, nil
 }
 
 // Given a CT v2 Object, construct a CTObject
