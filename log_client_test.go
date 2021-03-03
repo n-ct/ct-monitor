@@ -7,8 +7,8 @@ import (
 	"github.com/n-ct/ct-monitor/entitylist"
 )
 
-var (
-	logListPath = "entitylist/log_list.json"
+const (
+	logListPath = "testdata/log_list.json"
 
 	testLogID = "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM="
 )

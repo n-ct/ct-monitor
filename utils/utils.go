@@ -14,7 +14,7 @@ func FiletoBytes(fileName string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening file: %v", err)	
 	}
-	fmt.Printf("Successfully Opened %s\n", fileName)	// TODO Replace with log later
+	//fmt.Printf("Successfully Opened %s\n", fileName)	// TODO Replace with log later
 	byteData, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
 		return nil, fmt.Errorf("error reading from file %s: %v", fileName, err)
