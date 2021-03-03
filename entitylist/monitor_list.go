@@ -61,7 +61,7 @@ func NewMonitorList(monitorListName string) (*MonitorList, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening %s to create new MonitorList: %w", monitorListName, err)
 	}
-	monitorList, err := NewMonitorListFromJSON(byteData)
+	monitorList, err := newMonitorListFromJSON(byteData)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s to create new MonitorList: %w", monitorListName, err)
 	}
@@ -69,7 +69,7 @@ func NewMonitorList(monitorListName string) (*MonitorList, error) {
 }
 
 // NewFromJSON creates a LogList from JSON encoded data.
-func NewMonitorListFromJSON(mlData []byte) (*MonitorList, error) {
+func newMonitorListFromJSON(mlData []byte) (*MonitorList, error) {
 	var ml MonitorList
 	if err := json.Unmarshal(mlData, &ml); err != nil {
 		return nil, fmt.Errorf("failed to parse monitor list: %v", err)

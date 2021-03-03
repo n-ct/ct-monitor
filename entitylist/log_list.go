@@ -193,7 +193,7 @@ func NewLogList(logListName string) (*LogList, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening %s to create new LogList: %w", logListName, err)
 	}
-	logList, err := NewLogListFromJSON(byteData)
+	logList, err := newLogListFromJSON(byteData)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s to create new LogList: %w", logListName, err)
 	}
@@ -201,7 +201,7 @@ func NewLogList(logListName string) (*LogList, error) {
 }
 
 // NewFromJSON creates a LogList from JSON encoded data.
-func NewLogListFromJSON(llData []byte) (*LogList, error) {
+func newLogListFromJSON(llData []byte) (*LogList, error) {
 	var ll LogList
 	if err := json.Unmarshal(llData, &ll); err != nil {
 		return nil, fmt.Errorf("failed to parse log list: %v", err)
