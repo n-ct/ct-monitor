@@ -60,7 +60,7 @@ func TestCreateRequestURL(t *testing.T) {
 	for _, test := range tests {
 		reqURL := CreateRequestURL(test.address, test.endpointPath)
 		if reqURL != test.expectedRequestURL {
-			t.Fatalf("failed to create request URL: %s", reqURL)
+			t.Errorf("failed to create request URL: %s", reqURL)
 		}
 	}
 }

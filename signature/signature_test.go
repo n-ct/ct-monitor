@@ -2,6 +2,8 @@ package signature
 
 import (
 	"testing"
+	"bytes"
+	"encoding/json"
 
 	"github.com/google/certificate-transparency-go/tls"
 )
@@ -59,4 +61,22 @@ func TestCreateSignatureVerifySignatureRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSerializeData(t *testing.T) {
+	testBytes, _ := json.Marshal(testString)
+	serializedData, err := SerializeData(testString)
+	if err != nil {
+		t.Errorf("failed to serialize data (%v): %v", testString, err)
+	}
 
+	if !bytes.Equal(testBytes, serializedData) {
+		t.Errorf("mismatching SerializedData (%v) and testBytes(%v)", serializedData, testBytes)
+	}
+}
+
+func TestGenerateHash(t *testing.T) {
+	serializedData, _ := SerializeData(testString)
+	_, _, err := GenerateHash(tls.SHA256, serializedData)
+	if err != nil {
+		t.Errorf("failed to generateHash with hashalg(%v) and data (%v): %v", tls.SHA256, serializedData, err)
+	}
+}

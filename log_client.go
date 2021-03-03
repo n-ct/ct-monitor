@@ -23,7 +23,7 @@ func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
 	uri := log.URL	
 	client := &http.Client{}	
 	opts := jsonclient.Options{}
-	logClient, err := New(uri, client, opts, log)
+	logClient, err := newClient(uri, client, opts, log)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new LogClient for uri %s: %v", uri, err)
 	}
@@ -36,7 +36,7 @@ func NewLogClient(log *entitylist.LogInfo) (*LogClient, error){
 // |hc| is the underlying client to be used for HTTP requests to the CT log.
 // |opts| can be used to provide a custom logger interface and a public key
 // for signature verification.
-func New(uri string, hc *http.Client, opts jsonclient.Options, log *entitylist.LogInfo) (*LogClient, error) {
+func newClient(uri string, hc *http.Client, opts jsonclient.Options, log *entitylist.LogInfo) (*LogClient, error) {
 	logClient, err := jsonclient.New(uri, hc, opts)
 	if err != nil {
 		return nil, err
@@ -99,16 +99,16 @@ func (c *LogClient) constructTreeHeadSignatureFromSTH(sth *ct.SignedTreeHead) ct
 func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, second uint64) (*CTObject, error){
 	sth, err := c.getSTH(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SignedTreeHeadWithConsistencyProof CTObject: %w", err)
+		return nil, fmt.Errorf("failed to first get STH when getting STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
 	}
 	poc, err := c.getConsistencyProof(ctx, 100, 1000)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SignedTreeHeadWithConsistencyProof CTObject: %w", err)
+		return nil, fmt.Errorf("failed to first get PoC when getting STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
 	}
 	sthWithPoc := &SignedTreeHeadWithConsistencyProof{*sth, *poc}	
 	sthWithPOCCT, err := ConstructCTObject(sthWithPoc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
+		return nil, fmt.Errorf("failed to construct STHWithPoC CTObject for Logger %s: %w", c.LogInfo.LogID, err)
 	}
 	return sthWithPOCCT, nil
 }
@@ -140,7 +140,7 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 	}
 	var resp ct.GetEntryAndProofResponse
 	if _, _, err := c.GetAndParse(ctx, ct.GetEntryAndProofPath, params, &resp); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get EntryAndProof from Logger %s: %w", c.LogInfo.LogID, err)
 	}
 
 	// Construct ctv2 InclusionProofData

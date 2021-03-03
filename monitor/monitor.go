@@ -24,7 +24,7 @@ type Monitor struct {
 
 // Create a new Monitor using the createMonitor function found in monitor_setup.go
 func NewMonitor(monitorConfigName string, monitorListName string, logListName string) (*Monitor, error){
-	return CreateMonitor(monitorConfigName, monitorListName, logListName)
+	return createMonitor(monitorConfigName, monitorListName, logListName)
 }
 
 // Make a post request to corresponding GossiperURL with the given ctObject
@@ -127,29 +127,8 @@ func (m *Monitor) TestLogClient(){
 
 	sth, err := logClient.GetSTH(ctx)
 	if err != nil {
-		fmt.Printf("Failed to create STH")
-		return;
-	}
-	//m.Gossip(sth)
-
-	sth1, err := logClient.GetSTH(ctx)
-	if err != nil {
-		fmt.Printf("Failed to create STH1")
+		fmt.Printf("Failed to get STH from LogClient: %v", err)
 		return;
 	}
 	fmt.Println(sth)
-	fmt.Println()
-	fmt.Println(sth1)
-
-
-	sth_poc, err := logClient.GetSTHWithConsistencyProof(ctx, 100, 1000)
-	if err != nil {
-		fmt.Printf("Failed to create STH1")
-		return;
-	}
-
-	fmt.Println()
-	fmt.Println(m.CTObjectMap)
-	m.AddEntry(sth_poc)
-	fmt.Println(m.CTObjectMap)
 }

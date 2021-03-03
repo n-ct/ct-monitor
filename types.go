@@ -15,7 +15,7 @@ import (
 const (
 	AuditPath 		  = "/ct/v1/audit"
 	NewInfoPath		  = "/ct/v1/new-info"
-	MonitorDomainPath = "ct/v1/monitor-domain"
+	MonitorDomainPath = "/ct/v1/monitor-domain"
 )
 
 // TypeID const variables

@@ -11,7 +11,7 @@ import (
 )
 
 // Create Monitor 
-func CreateMonitor(monitorConfigName string, monitorListName string, logListName string) (*Monitor, error){
+func createMonitor(monitorConfigName string, monitorListName string, logListName string) (*Monitor, error){
 	monitorConfig, err := parseMonitorConfig(monitorConfigName)
 	if nil != err {
 		return nil, fmt.Errorf("failed to setup new monitor: %w", err)
