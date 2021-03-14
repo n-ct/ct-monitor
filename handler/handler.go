@@ -91,3 +91,7 @@ func (h *Handler) MonitorDomain(rw http.ResponseWriter, req *http.Request){
 		return
 	}
 }
+
+func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
+
+}

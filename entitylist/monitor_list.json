@@ -1,22 +1,42 @@
 {
     "operators": [
-      {
-        "name": "Nobody",
-        "email": ["nothing@here.come"],
-        "monitors": [
-          {
-            "monitor_id": "monitor1",
-            "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE2HQc8jcuoOj/H/4+HQItNBEolurr547rC5i4O61Wf0mxvV9anHz+kIcTy7n9hnStoK+WGkI3fF6k7l2IO3OiyA==",
-            "monitor_url": "localhost:8080",
-            "gossiper_url": "http://localhost:4500"
-          },
-          {
-            "monitor_id": "monitor2",
-            "monitor_key": "aaabbbcccddd",
-            "monitor_url": "monitor2.com",
-            "gossiper_url": "http://localhost:5500"
-          }
-        ]
-      }
+        {
+            "name": "Nobody",
+            "email": [
+                "nothing@here.come"
+            ],
+            "monitors": [
+                {
+                    "monitor_id": "LeYXK29QzQV9RxvgMw+hnOeyZV85A6a5quOLltev9H0=",
+                    "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmFk6QT48Ts4oxSkBPM4mQ/mnWICKVmZUP6urQVBH0vhDzJVYHc2ShvF2KjWzorVu2C+tY6lIU+61iiPLsGvZXw==",
+                    "monitor_url": "localhost:5000",
+                    "gossiper_url": "localhost:5001"
+                },
+                {
+                    "monitor_id": "VN9AXgSutATmhNeZAIL5PdqleXvfaPi9IVPeYXk/62Y=",
+                    "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/ZQRb752UYNfknYXiQf8S87c7yRO9KOeyvTykt4IKADyUoed8DafNvc6wJfOah7gjW4yX4+tThJLo5POL7MXtw==",
+                    "monitor_url": "localhost:5002",
+                    "gossiper_url": "localhost:5003"
+                },
+                {
+                    "monitor_id": "5ztwS42ujpMJgPXGoAG79sARBGMyT8QoUeUbH6zeRSE=",
+                    "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaGNW23sqhs7PNboVEM84yKPkVA7u2b99L0ktWHBvBm4akajixHKvoZy4WuJ3O97Qi5eK8qv1ci+QTxOUh3mWVg==",
+                    "monitor_url": "localhost:5004",
+                    "gossiper_url": "localhost:5005"
+                },
+                {
+                    "monitor_id": "q2dH9Qy8i1LzAin1X//DY8WcvWGZrZWsn7LLVLpn+Mk=",
+                    "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjuDyTMM4saHw1pExbG3jY0qeUYh5028ZppHGAy7FQL9s4dFgbMO+AQaAonBzjPquVP2PVtLR5r5NyZUIDrqykw==",
+                    "monitor_url": "localhost:5006",
+                    "gossiper_url": "localhost:5007"
+                },
+                {
+                    "monitor_id": "FfciEFHo6/qdwKY/g+CrMFg9qJGj7iujeiJ/xrPqjrY=",
+                    "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE6aMeu0Wcd6IikNuPdSOMG2Lz9lGxDVw2pMJlUWYxcj/ga7eCwaNdujkUfF3/W/yTgCGbxOgQo53G7ehZ7TuAKQ==",
+                    "monitor_url": "localhost:5008",
+                    "gossiper_url": "localhost:5009"
+                }
+            ]
+        }
     ]
 }

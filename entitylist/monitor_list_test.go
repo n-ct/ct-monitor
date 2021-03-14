@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	monitorListPath = "monitor_list.json"
+	monitorListPath = "../testdata/monitor_list.json"
 	testMonitorID = "monitor1"
 	testMonitorIDKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE2HQc8jcuoOj/H/4+HQItNBEolurr547rC5i4O61Wf0mxvV9anHz+kIcTy7n9hnStoK+WGkI3fF6k7l2IO3OiyA=="
 	testMonitorIDURL = "localhost:8080"

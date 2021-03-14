@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	monitorConfigName = "monitor/monitor_config.json"
-	monitorListName = "entitylist/monitor_list.json"
-	logListName = "entitylist/log_list.json"
+	monitorConfigName = flag.String("config", "monitor/monitor_config.json", "File containing Monitor configuration")
+	monitorListName = flag.String("monitorlist", "entitylist/monitor_list.json", "File containing MonitorList")
+	logListName = flag.String("loglist", "entitylist/log_list.json", "File containing LogList")
 )
 
 func main(){
@@ -32,7 +32,7 @@ func main(){
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initalize the variables of the Monitor
-	monitorInstance, err := monitor.NewMonitor(monitorConfigName, monitorListName, logListName)
+	monitorInstance, err := monitor.NewMonitor(*monitorConfigName, *monitorListName, *logListName)
 	if err != nil {
 		fmt.Println("failed to create monitor: %w", err)	// Only for testing purposes
 		glog.Infoln("Couldn't create monitor: %w", err)
@@ -77,6 +77,7 @@ func handlerSetup(m *monitor.Monitor) (*http.ServeMux) {
 	serveMux.HandleFunc(mtr.AuditPath, handler.Audit)
 	serveMux.HandleFunc(mtr.NewInfoPath, handler.NewInfo)
 	serveMux.HandleFunc(mtr.MonitorDomainPath, handler.MonitorDomain)
+	serveMux.HandleFunc(mtr.STHGossipPath, handler.STHGossip)
 
 	// Return a 200 on the root so clients can easily check if server is up
 	serveMux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {

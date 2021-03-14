@@ -16,6 +16,7 @@ const (
 	AuditPath 		  = "/ct/v1/audit"
 	NewInfoPath		  = "/ct/v1/new-info"
 	MonitorDomainPath = "/ct/v1/monitor-domain"
+	STHGossipPath	  = "/ct/v1/sth-gossip"
 )
 
 // TypeID const variables
@@ -168,7 +169,7 @@ func (c *CTObject) DeconstructAlert() (*Alert, error) {
 	var alert Alert
 	err := json.Unmarshal(c.Blob, &alert)
 	if err != nil {
-		return nil, fmt.Errorf("error deconstructing Alert from %s CTObject: %v", c.TypeID, err)
+		return nil, fmt.Errorf("error deconstructing Alert from %s CTObject: %w", c.TypeID, err)
 	}
 	return &alert, nil
 }
@@ -178,7 +179,7 @@ func (c *CTObject) DeconstructAuditOK() (*AuditOK, error) {
 	var auditOK AuditOK
 	err := json.Unmarshal(c.Blob, &auditOK)
 	if err != nil {
-		return nil, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %v", c.TypeID, err)
+		return nil, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %w", c.TypeID, err)
 	}
 	return &auditOK, nil
 }
@@ -188,7 +189,7 @@ func (c *CTObject) DeconstructConflictingSTHPOM() (*ConflictingSTHPOM, error) {
 	var pom ConflictingSTHPOM
 	err := json.Unmarshal(c.Blob, &pom)
 	if err != nil {
-		return nil, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %v", c.TypeID, err)
+		return nil, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %w", c.TypeID, err)
 	}
 	return &pom, nil
 }
@@ -198,7 +199,7 @@ func (c *CTObject) DeconstructNonRespondingLogPOM() (*NonRespondingLogPOM, error
 	var pom NonRespondingLogPOM
 	err := json.Unmarshal(c.Blob, &pom)
 	if err != nil {
-		return nil, fmt.Errorf("error deconstructing NonRespondingLogPOM from %s CTObject: %v", c.TypeID, err)
+		return nil, fmt.Errorf("error deconstructing NonRespondingLogPOM from %s CTObject: %w", c.TypeID, err)
 	}
 	return &pom, nil
 }
