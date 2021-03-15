@@ -41,7 +41,7 @@ func main(){
 	}
 
 	// Test the LoggerClient Interface
-	monitorInstance.TestLogClient()
+	//monitorInstance.TestLogClient()
 
 	// Create http.Server instance for the Monitor
 	server := serverSetup(monitorInstance)
@@ -56,6 +56,7 @@ func main(){
 // Sets up the basic monitor http server
 func serverSetup(m *monitor.Monitor) *http.Server{
 	serveMux := handlerSetup(m)
+	fmt.Printf("Serving at address: %s", m.ListenAddress)
 	server := &http.Server {
 		Addr: m.ListenAddress,
 		Handler: serveMux,

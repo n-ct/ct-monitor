@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -93,5 +94,26 @@ func (h *Handler) MonitorDomain(rw http.ResponseWriter, req *http.Request){
 }
 
 func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
-
+	if req.Method != "GET" {
+		writeWrongMethodResponse(&rw, "GET")
+		return
+	}
+	logID, ok := req.URL.Query()["log-id"]
+	if !ok {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("STHGossip request missing log-id param"))
+		return
+	}
+	logClient, ok := h.m.LogIDMap[logID[0]]
+	if !ok {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("STHGossip request log-id param value invalid. %v log-id not found in Monitor's LogIDMap", logID))
+		return
+	}
+	ctx := context.Background()
+	sth, err := logClient.GetSTH(ctx)
+	if err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSTH from logger with log-id (%v): %v", logID, err))
+		return
+	}
+	h.m.Gossip(sth)
+	rw.WriteHeader(http.StatusOK)
 }
