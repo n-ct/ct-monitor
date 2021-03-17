@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/golang/glog"
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/entitylist"
 	"github.com/n-ct/ct-monitor/utils"
@@ -34,7 +35,7 @@ func (m *Monitor) Gossip(ctObject *mtr.CTObject) error {
 		return fmt.Errorf("failed to marshal %s ctobject when gossiping: %v", ctObject.TypeID, err)
 	}
 	gossipURL := utils.CreateRequestURL(m.GossiperURL, "/ct/v1/gossip")
-	fmt.Printf("\ngossip CTObject using Gossiper at address: %s", gossipURL)
+	glog.Infof("\ngossip CTObject using Gossiper at address: %s", gossipURL)
 
 	// Create request
 	req, err := http.NewRequest("POST", gossipURL, bytes.NewBuffer(jsonBytes)) 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/golang/glog"
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
@@ -57,6 +58,7 @@ func (c *LogClient) GetSTH(ctx context.Context) (*CTObject, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get STH from Logger %s: %w", c.LogInfo.LogID, err)
 	}
+	glog.Infoln("Received STH from Log")
 	return sthCT, nil
 }
 

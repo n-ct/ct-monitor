@@ -35,10 +35,11 @@ func main(){
 	monitorInstance, err := monitor.NewMonitor(*monitorConfigName, *monitorListName, *logListName)
 	if err != nil {
 		fmt.Println("failed to create monitor: %w", err)	// Only for testing purposes
-		glog.Infoln("Couldn't create monitor: %w", err)
+		glog.Fatalf("Couldn't create monitor: %v", err)
 		glog.Flush()
 		os.Exit(-1)
 	}
+	glog.Infoln("Starting CT-Monitor")
 
 	// Test the LoggerClient Interface
 	//monitorInstance.TestLogClient()
@@ -56,6 +57,7 @@ func main(){
 // Sets up the basic monitor http server
 func serverSetup(m *monitor.Monitor) *http.Server{
 	serveMux := handlerSetup(m)
+	glog.Infof("Serving at address: %s", m.ListenAddress)
 	fmt.Printf("Serving at address: %s", m.ListenAddress)
 	server := &http.Server {
 		Addr: m.ListenAddress,
@@ -65,6 +67,7 @@ func serverSetup(m *monitor.Monitor) *http.Server{
 	// start up handles
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
+			glog.Flush()
 			glog.Exitf("Problem serving: %v\n",err)
 		}
 	}()

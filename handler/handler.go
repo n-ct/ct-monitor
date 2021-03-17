@@ -98,6 +98,7 @@ func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
 		writeWrongMethodResponse(&rw, "GET")
 		return
 	}
+	glog.Infoln("Received STHGossip request")
 	logID, ok := req.URL.Query()["log-id"]
 	if !ok {
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("STHGossip request missing log-id param"))
