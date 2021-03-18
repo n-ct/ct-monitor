@@ -9,14 +9,14 @@
                 {
                     "monitor_id": "LeYXK29QzQV9RxvgMw+hnOeyZV85A6a5quOLltev9H0=",
                     "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmFk6QT48Ts4oxSkBPM4mQ/mnWICKVmZUP6urQVBH0vhDzJVYHc2ShvF2KjWzorVu2C+tY6lIU+61iiPLsGvZXw==",
-                    "monitor_url": "localhost:5000",
-                    "gossiper_url": "localhost:5001"
+                    "monitor_url": "http://localhost:5000",
+                    "gossiper_url": "http://localhost:5001"
                 },
                 {
                     "monitor_id": "VN9AXgSutATmhNeZAIL5PdqleXvfaPi9IVPeYXk/62Y=",
                     "monitor_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/ZQRb752UYNfknYXiQf8S87c7yRO9KOeyvTykt4IKADyUoed8DafNvc6wJfOah7gjW4yX4+tThJLo5POL7MXtw==",
-                    "monitor_url": "localhost:5002",
-                    "gossiper_url": "localhost:5003"
+                    "monitor_url": "http://localhost:5002",
+                    "gossiper_url": "http://localhost:5003"
                 },
                 {
                     "monitor_id": "5ztwS42ujpMJgPXGoAG79sARBGMyT8QoUeUbH6zeRSE=",

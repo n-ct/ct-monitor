@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"fmt"
+	"strings"
 	"encoding/json"
 
 	mtr "github.com/n-ct/ct-monitor"
@@ -92,6 +93,7 @@ func getMonitorListInfo(monitorListName string, monitorConfig *MonitorConfig) (*
 	}
 	monitorInfo := monitorList.FindMonitorByMonitorID(monitorConfig.MonitorID)
 	gossiperURL := &monitorInfo.GossiperURL
-	monitorURL := &monitorInfo.MonitorURL
-	return monitorList, gossiperURL, monitorURL, nil
+	msplit := strings.Split(monitorInfo.MonitorURL, ":")
+	monitorURL := msplit[1][2:] + ":" + msplit[2]
+	return monitorList, gossiperURL, &monitorURL, nil
 }
