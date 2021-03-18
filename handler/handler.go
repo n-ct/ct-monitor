@@ -65,7 +65,7 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 
 
 func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
-	glog.V(1).Infoln("Received NewInfo Request")
+	glog.Infoln("Received NewInfo Request")
 	if req.Method != "POST" {
 		writeWrongMethodResponse(&rw, "POST")
 		return
