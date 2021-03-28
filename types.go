@@ -21,12 +21,15 @@ const (
 
 // TypeID const variables
 const (
-	STHTypeID = "STH"
-	STHPOCTypeID = "STH_POC"
-	AlertTypeID = "ALERT"
-	ConflictingSTHPOMTypeID = "POM_CONFLICTING_STH"
-	NonRespondingLogPOMTypeID = "POM_NONRESPONDING_LOG"
-	AuditOKTypeID = "AUDIT_OK"
+	STHTypeID 					= "STH"
+	STHPOCTypeID 				= "STH_POC"
+	AlertTypeID 				= "ALERT"
+	ConflictingSTHPOMTypeID 	= "POM_CONFLICTING_STH"
+	NonRespondingLogPOMTypeID 	= "POM_NONRESPONDING_LOG"
+	AuditOKTypeID 				= "AUDIT_OK"
+
+	// Revocation transparency data
+	SRDWithRevDataTypeID 		= "SRD_REVDATA"
 )
 
 type SignedTreeHeadData struct {
@@ -78,6 +81,31 @@ type NonRespondingLogPOM struct {
 type AuditOK struct {
 	STH			SignedTreeHeadData
 	Signature 	ct.DigitallySigned
+}
+
+
+// Revocation transparency data
+type RevocationData struct {
+	RevocationType 	string
+	Timestamp 	uint64
+	CRVDelta	[]byte	// CRVDelta will always be compressed
+}
+
+type RevocationDigest struct {
+	Timestamp 	 uint64
+	CRVHash		 []byte
+	CRVDeltaHash []byte
+}
+
+type SignedRevocationDigest struct {
+	CAID 		string
+	RevDigest	RevocationDigest	
+	Signature	ct.DigitallySigned
+}
+
+type SRDWithRevData struct {
+	RevData		RevocationData
+	SRD			SignedRevocationDigest
 }
 
 type ObjectIdentifier struct{
@@ -204,6 +232,31 @@ func (c *CTObject) DeconstructNonRespondingLogPOM() (*NonRespondingLogPOM, error
 	return &pom, nil
 }
 
+func (c *CTObject) deconstructSRDWithRevData() (*SRDWithRevData, error) {
+	var srd_rev SRDWithRevData
+	err := json.Unmarshal(c.Blob, &srd_rev)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing SRDWithRevData from %s CTObject: %v", c.TypeID, err)
+	}
+	return &srd_rev, nil
+}
+
+func (c *CTObject) DeconstructRevData() (*RevocationData, error) {
+	srd_rev, err := c.deconstructSRDWithRevData()
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
+	}
+	return &srd_rev.RevData, nil
+}
+
+func (c *CTObject) DeconstructSRD() (*SignedRevocationDigest, error) {
+	srd_rev, err := c.deconstructSRDWithRevData()
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
+	}
+	return &srd_rev.SRD, nil
+}
+
 // Given a CT v2 Object, construct a CTObject
 func ConstructCTObject(i interface{}) (*CTObject, error) {
 	var err error
@@ -223,11 +276,11 @@ func ConstructCTObject(i interface{}) (*CTObject, error) {
 		signer = sth.LogID
 		blob, err = signature.SerializeData(sth)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+			return nil, fmt.Errorf("error constructing STH CTObject serializing data: %w", err)
 		}
 		digest, _, err = signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+			return nil, fmt.Errorf("error constructing STH CTObject generating hash: %w", err)
 		}
 	
 	case *Alert:
@@ -237,11 +290,11 @@ func ConstructCTObject(i interface{}) (*CTObject, error) {
 		signer = alert.TBS.Signer
 		blob, err = signature.SerializeData(alert)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+			return nil, fmt.Errorf("error constructing Alert CTObject serializing data: %w", err)
 		}
 		digest, _, err = signature.GenerateHash(alert.Signature.Algorithm.Hash, blob)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+			return nil, fmt.Errorf("error constructing Alert CTObject generating hash: %w", err)
 		}
 	
 	case *SignedTreeHeadWithConsistencyProof:
@@ -251,11 +304,25 @@ func ConstructCTObject(i interface{}) (*CTObject, error) {
 		signer = sth_poc.SignedTreeHead.LogID
 		blob, err = signature.SerializeData(sth_poc)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject serializing data: %w", err)
+			return nil, fmt.Errorf("error constructing STHPOC CTObject serializing data: %w", err)
 		}
 		digest, _, err = signature.GenerateHash(sth_poc.SignedTreeHead.Signature.Algorithm.Hash, blob)
 		if err != nil {
-			return nil, fmt.Errorf("error constructing CTObject generating hash: %w", err)
+			return nil, fmt.Errorf("error constructing STHPOC CTObject generating hash: %w", err)
+		}
+	
+	case *SRDWithRevData:
+		srd_rev := i.(*SRDWithRevData)
+		typeID = SRDWithRevDataTypeID
+		timestamp = srd_rev.SRD.RevDigest.Timestamp
+		signer = srd_rev.SRD.CAID
+		blob, err = signature.SerializeData(srd_rev)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing SRDWithRevData CTObject serializing data: %w", err)
+		}
+		digest, _, err = signature.GenerateHash(srd_rev.SRD.Signature.Algorithm.Hash, blob)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing SRDWithRevData CTObject generating hash: %w", err)
 		}
 	
 	default:
