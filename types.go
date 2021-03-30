@@ -86,6 +86,7 @@ type AuditOK struct {
 
 // Revocation transparency data
 type RevocationData struct {
+	EntityID 	string
 	RevocationType 	string
 	Timestamp 	uint64
 	CRVDelta	[]byte	// CRVDelta will always be compressed
@@ -98,7 +99,7 @@ type RevocationDigest struct {
 }
 
 type SignedRevocationDigest struct {
-	CAID 		string
+	EntityID 	string
 	RevDigest	RevocationDigest	
 	Signature	ct.DigitallySigned
 }
@@ -315,7 +316,7 @@ func ConstructCTObject(i interface{}) (*CTObject, error) {
 		srd_rev := i.(*SRDWithRevData)
 		typeID = SRDWithRevDataTypeID
 		timestamp = srd_rev.SRD.RevDigest.Timestamp
-		signer = srd_rev.SRD.CAID
+		signer = srd_rev.SRD.EntityID
 		blob, err = signature.SerializeData(srd_rev)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing SRDWithRevData CTObject serializing data: %w", err)

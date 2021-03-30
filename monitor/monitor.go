@@ -12,6 +12,9 @@ import (
 	"github.com/n-ct/ct-monitor/entitylist"
 	"github.com/n-ct/ct-monitor/utils"
 	"github.com/n-ct/ct-monitor/signature"
+
+	ctca "github.com/n-ct/ct-certificate-authority"
+	ct "github.com/google/certificate-transparency-go"
 )
 
 type Monitor struct {
@@ -132,4 +135,36 @@ func (m *Monitor) TestLogClient(){
 		return;
 	}
 	fmt.Println(sth)
+
+	//dSTH, err := sth.DeconstructSTH()
+	//testSRDCTObj(dSTH.Signature)
+}
+
+func testCAList() {
+	caList, err := entitylist.NewCAList("entitylist/ca_list.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(caList.FindCAByCAID("LeYXK29QzQV9RxvgMw+hnOeyZV85A6a5quOLltev9H0="))
+	fmt.Println(caList.FindCAByCAURL("http://localhost:6000"))
+
+}
+
+func testSRDCTObj(sig ct.DigitallySigned) {
+	crv := ctca.CreateCRV([]uint64{1,2}, 0)
+	compCRV, err := ctca.CompressCRV(crv)
+	if err != nil {
+		fmt.Println(err)
+	}
+	revData := mtr.RevocationData{"hi", "hi", 3, compCRV}
+	hsh := []byte("hi")
+	revDigest := mtr.RevocationDigest{3, hsh, hsh}
+	srd := mtr.SignedRevocationDigest{"ca", revDigest, sig}
+	srdWithRev := mtr.SRDWithRevData{revData, srd}
+
+	ctObj, err := mtr.ConstructCTObject(&srdWithRev)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(ctObj)
 }
