@@ -118,7 +118,7 @@ func mustCreateSigner(t *testing.T, strPrivKey string) (*signature.Signer, error
 	return signature.NewSigner(strPrivKey)
 }
 
-func TestCreateDeconstructAuditOKRoundTrip(t *testing.T) {
+func TestCreateDeconstructSTHAuditOKRoundTrip(t *testing.T) {
 	signer, err := mustCreateSigner(t, testValidECDSAPrivKey)
 	if err != nil {
 		t.Fatalf("failed to construct signature to test auditOK: %v", err)	
@@ -127,11 +127,11 @@ func TestCreateDeconstructAuditOKRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get sth to test auditOK: %v", err)
 	}
-	auditOK, err := CreateAuditOK(signer, sth)
+	auditOK, err := CreateSTHAuditOK(signer, sth)
 	if err != nil {
 		t.Fatalf("failed to create auditOK: %v", err)
 	}
-	deconAuditOK, err := auditOK.DeconstructAuditOK()
+	deconAuditOK, err := auditOK.DeconstructSTHAuditOK()
 	if err != nil {
 		t.Fatalf("failed to deconstruct auditOK: %v", err)
 	}

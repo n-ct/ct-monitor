@@ -25,8 +25,10 @@ const (
 	STHPOCTypeID 				= "STH_POC"
 	AlertTypeID 				= "ALERT"
 	ConflictingSTHPOMTypeID 	= "POM_CONFLICTING_STH"
+	ConflictingSRDPOMTypeID 	= "POM_CONFLICTING_SRD"
 	NonRespondingLogPOMTypeID 	= "POM_NONRESPONDING_LOG"
-	AuditOKTypeID 				= "AUDIT_OK"
+	SRDAuditOKTypeID			= "SRD_AUDIT_OK"
+	STHAuditOKTypeID			= "STH_AUDIT_OK"
 
 	// Revocation transparency data
 	SRDWithRevDataTypeID 		= "SRD_REVDATA"
@@ -74,6 +76,11 @@ type ConflictingSTHPOM struct {
 	STH2	SignedTreeHeadData
 }
 
+type ConflictingSRDPOM struct {
+	SRD1	SignedRevocationDigest
+	SRD2	SignedRevocationDigest
+}
+
 type NonRespondingLogPOM struct {
 	AlertList []Alert
 }
@@ -83,6 +90,15 @@ type AuditOK struct {
 	Signature 	ct.DigitallySigned
 }
 
+type SRDAuditOK struct {
+	SRD			SignedRevocationDigest
+	Signature 	ct.DigitallySigned
+}
+
+type STHAuditOK struct {
+	STH			SignedTreeHeadData
+	Signature 	ct.DigitallySigned
+}
 
 // Revocation transparency data
 type RevocationData struct {
@@ -204,11 +220,20 @@ func (c *CTObject) DeconstructAlert() (*Alert, error) {
 }
 
 // Deconstruct AuditOK CTObject
-func (c *CTObject) DeconstructAuditOK() (*AuditOK, error) {
-	var auditOK AuditOK
+func (c *CTObject) DeconstructSRDAuditOK() (*SRDAuditOK, error) {
+	var auditOK SRDAuditOK
 	err := json.Unmarshal(c.Blob, &auditOK)
 	if err != nil {
-		return nil, fmt.Errorf("error deconstructing AuditOK from %s CTObject: %w", c.TypeID, err)
+		return nil, fmt.Errorf("error deconstructing SRDAuditOK from %s CTObject: %w", c.TypeID, err)
+	}
+	return &auditOK, nil
+}
+// Deconstruct AuditOK CTObject
+func (c *CTObject) DeconstructSTHAuditOK() (*STHAuditOK, error) {
+	var auditOK STHAuditOK
+	err := json.Unmarshal(c.Blob, &auditOK)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing STHAuditOK from %s CTObject: %w", c.TypeID, err)
 	}
 	return &auditOK, nil
 }
@@ -219,6 +244,16 @@ func (c *CTObject) DeconstructConflictingSTHPOM() (*ConflictingSTHPOM, error) {
 	err := json.Unmarshal(c.Blob, &pom)
 	if err != nil {
 		return nil, fmt.Errorf("error deconstructing ConflictingSTHPOM from %s CTObject: %w", c.TypeID, err)
+	}
+	return &pom, nil
+}
+
+// Deconstruct ConflictingSRDPOM CTObject
+func (c *CTObject) DeconstructConflictingSRDPOM() (*ConflictingSRDPOM, error) {
+	var pom ConflictingSRDPOM
+	err := json.Unmarshal(c.Blob, &pom)
+	if err != nil {
+		return nil, fmt.Errorf("error deconstructing ConflictingSRDPOM from %s CTObject: %w", c.TypeID, err)
 	}
 	return &pom, nil
 }
@@ -375,8 +410,49 @@ func CreateConflictingSTHPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) 
 	return ctObject, nil
 }
 
+// Given two CtObjects that contain STH, create PoM of conflicting STHs
+func CreateConflictingSRDPOM(obj1 *CTObject, obj2 *CTObject) (*CTObject, error) {
+	if obj1.TypeID != SRDWithRevDataTypeID || obj2.TypeID != SRDWithRevDataTypeID {
+		return nil, fmt.Errorf("Not valid SRDWithRevData CTObjects")
+	}
+
+	if bytes.Equal(obj1.Digest, obj2.Digest){
+		return nil, fmt.Errorf("SRDs are not conflicting. Error creating PoM")
+	}
+
+	var signer string
+	version := VersionData{1,0,0} // TODO replace this with a better way to get currentVersion
+	srd1, err := obj1.DeconstructSRD()
+	if err != nil {
+		return nil, fmt.Errorf("error creating ConflictingSTHPOM: %w", err)
+	}
+
+	srd2, err := obj2.DeconstructSRD()
+	if err != nil {
+		return nil, fmt.Errorf("error creating ConflictingSTHPOM: %w", err)
+	}
+
+	// Create fields of the PoM CTObject
+	typeID := ConflictingSRDPOMTypeID
+	timestamp := srd1.RevDigest.Timestamp
+	subject := srd1.EntityID
+	proof := ConflictingSRDPOM{*srd1, *srd2}
+	blob, err := signature.SerializeData(proof)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing ConflictingSRDPOM serializing data: %w", err)
+	}
+	digest, _, err := signature.GenerateHash(srd1.Signature.Algorithm.Hash, blob)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing ConflictingSRDPOM generating hash: %w", err)
+	}
+	
+	// Create the POM CTObject
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, nil
+}
+
 // Given signer and sth ctobject, create AuditOK
-func CreateAuditOK(sigSigner *signature.Signer, sthCT *CTObject) (*CTObject, error){
+func CreateSTHAuditOK(sigSigner *signature.Signer, sthCT *CTObject) (*CTObject, error){
 	var signer string
 	version := VersionData{1,0,0}
 	sth, err := sthCT.DeconstructSTH()
@@ -385,7 +461,7 @@ func CreateAuditOK(sigSigner *signature.Signer, sthCT *CTObject) (*CTObject, err
 	}
 
 	// Create fields of AuditOk CTbject
-	typeID := AuditOKTypeID
+	typeID := STHAuditOKTypeID
 	timestamp := sth.TreeHeadData.Timestamp
 	subject := sth.LogID
 
@@ -397,6 +473,37 @@ func CreateAuditOK(sigSigner *signature.Signer, sthCT *CTObject) (*CTObject, err
 		return nil, fmt.Errorf("error constructing AuditOK serializing data: %w", err)
 	}
 	digest, _, err := signature.GenerateHash(sth.Signature.Algorithm.Hash, blob)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing AuditOK generating hash: %w", err)
+	}
+	
+	// Create the CTObject PoM
+	ctObject := &CTObject{typeID, version, timestamp, signer, subject, digest, blob}
+	return ctObject, nil
+}
+
+// Given signer and srdWithRevData ctobject, create AuditOK
+func CreateSRDAuditOK(sigSigner *signature.Signer, srdCT *CTObject) (*CTObject, error){
+	var signer string
+	version := VersionData{1,0,0}
+	srd, err := srdCT.DeconstructSRD()
+	if err != nil {
+		return nil, fmt.Errorf("error creating SRD AuditOK: %w", err)
+	}
+
+	// Create fields of AuditOk CTbject
+	typeID := SRDAuditOKTypeID
+	timestamp := srd.RevDigest.Timestamp
+	subject := srd.EntityID
+
+	// Sign the STH and create the AuditOK
+	sig, err := sigSigner.CreateSignature(tls.SHA256, srd)
+	auditOK := SRDAuditOK{*srd, *sig}
+	blob, err := signature.SerializeData(auditOK)
+	if err != nil {
+		return nil, fmt.Errorf("error constructing AuditOK serializing data: %w", err)
+	}
+	digest, _, err := signature.GenerateHash(srd.Signature.Algorithm.Hash, blob)
 	if err != nil {
 		return nil, fmt.Errorf("error constructing AuditOK generating hash: %w", err)
 	}

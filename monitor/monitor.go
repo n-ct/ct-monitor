@@ -57,7 +57,19 @@ func (m *Monitor) Gossip(ctObject *mtr.CTObject) error {
 }
 
 // Given STHCTObject, get stored corresponding STH and audit
-func (m *Monitor) AuditSTH(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
+func (m *Monitor) Audit(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
+	var err error
+	var auditResp *mtr.CTObject
+	if ctObject.TypeID == mtr.SRDWithRevDataTypeID {
+		auditResp, err = m.auditSRD(ctObject)
+	} else if ctObject.TypeID == mtr.STHTypeID {
+		auditResp, err = m.auditSTH(ctObject)
+	}
+	return auditResp, err
+}
+
+// Given STHCTObject, get stored corresponding STH and audit
+func (m *Monitor) auditSTH(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
 	var auditResp *mtr.CTObject
 	storedSTH, err := m.GetCorrespondingSTHEntry(ctObject)
 	if err != nil {
@@ -71,9 +83,33 @@ func (m *Monitor) AuditSTH(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
 			return nil, fmt.Errorf("failed to create PoM during audit: %w", err)
 		}
 	} else {
-		auditResp, err = mtr.CreateAuditOK(m.Signer, ctObject)
+		auditResp, err = mtr.CreateSTHAuditOK(m.Signer, ctObject)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create AuditOK during audit: %w", err)
+			return nil, fmt.Errorf("failed to create STHAuditOK during audit: %w", err)
+		}
+	}
+	return auditResp, nil
+}
+
+// Given SRDCTObject, get stored corresponding SRD and audit
+func (m *Monitor) auditSRD(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
+	var auditResp *mtr.CTObject
+	// TODO IMPLMEENT THIS 
+	storedSRD, err := m.GetCorrespondingSRDEntry(ctObject)
+	if err != nil {
+		return nil, fmt.Errorf("no corresponding SRD in monitor to audit: %w", err)
+	}
+
+	// Compare the Digests of the two STHs
+	if !bytes.Equal(storedSRD.Digest, ctObject.Digest){
+		auditResp, err = mtr.CreateConflictingSRDPOM(storedSRD, ctObject) 
+		if err != nil {
+			return nil, fmt.Errorf("failed to create PoM during audit: %w", err)
+		}
+	} else {
+		auditResp, err = mtr.CreateSRDAuditOK(m.Signer, ctObject)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create SRDAuditOK during audit: %w", err)
 		}
 	}
 	return auditResp, nil
@@ -103,6 +139,12 @@ func (m *Monitor) GetCorrespondingSTHEntry(ctObject *mtr.CTObject) (*mtr.CTObjec
 		}
 	}
 	return sth, nil
+}
+// Get SRD with the given SRDWithRevDataCTObject identifer stored within the monitor
+func (m *Monitor) GetCorrespondingSRDEntry(ctObject *mtr.CTObject) (*mtr.CTObject, error) {
+	id := ctObject.Identifier()
+	srd := m.GetEntry(id)
+	return srd, nil
 }
 
 //addEntry adds a new entry to the selected map using the data identifier as keys
@@ -136,8 +178,9 @@ func (m *Monitor) TestLogClient(){
 	}
 	fmt.Println(sth)
 
-	//dSTH, err := sth.DeconstructSTH()
-	//testSRDCTObj(dSTH.Signature)
+	/*dSTH, err := sth.DeconstructSTH()
+	testSRDCTObj(dSTH.Signature)
+	*/
 }
 
 func testCAList() {

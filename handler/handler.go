@@ -44,13 +44,13 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 		return
 	}
 
-	if ctObject.TypeID != mtr.STHTypeID{
-		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Invalid STH CTObject. Need %s", mtr.STHTypeID))
+	if ctObject.TypeID != mtr.STHTypeID && ctObject.TypeID != mtr.SRDWithRevDataTypeID{
+		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("Invalid STH or SRD CTObject. Need %s", mtr.STHTypeID))
 		return
 	}
 
 	// Get ctObject audit response. This can either be PoM CTObject or AuditOK CTObject
-	auditResp, err := h.m.AuditSTH(&ctObject)
+	auditResp, err := h.m.Audit(&ctObject)
 	if err != nil {
 		writeErrorResponse(&rw, http.StatusInternalServerError, fmt.Sprintf("failed to audit: %v", err))
 		return
