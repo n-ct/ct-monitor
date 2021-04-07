@@ -68,7 +68,7 @@ func serverSetup(m *monitor.Monitor) *http.Server{
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			glog.Flush()
-			glog.Exitf("Problem serving: %v\n",err)
+			glog.Infof("Problem serving: %v\n",err)
 		}
 	}()
 	return server

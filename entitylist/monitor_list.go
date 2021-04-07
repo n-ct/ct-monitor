@@ -81,7 +81,7 @@ func newMonitorListFromJSON(mlData []byte) (*MonitorList, error) {
 func (ml *MonitorList) FindMonitorByMonitorID(monitorID string) *MonitorInfo {
 	for _, op := range ml.MonitorOperators {
 		for _, mon := range op.Monitors {
-			if (strings.Contains(mon.MonitorID, monitorID)){
+			if mon.MonitorID == monitorID {
 				return mon 
 			}
 		}

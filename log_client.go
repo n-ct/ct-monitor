@@ -158,8 +158,8 @@ func (c *LogClient) GetSRDWithRevData() (*CTObject, error) {
 	logURL := c.LogInfo.URL
 	slashSplit := strings.Split(logURL, "/")
 	colonSplit := strings.Split(slashSplit[2], ":")
-	reqURL := slashSplit[0] + "//" + colonSplit[0] + ":8000"
-	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/get-srd-with-rev-data")
+	reqURL := slashSplit[0] + "//" + colonSplit[0] + ":6966"
+	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/get-log-srd-with-rev-data")
 	glog.Infof("\nget srdWithRevData from log at address: %s", reqURL)
 
 	// Create request

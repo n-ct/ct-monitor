@@ -5,6 +5,8 @@ import (
 	"strings"
 	"encoding/json"
 
+	"github.com/golang/glog"
+
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/entitylist"
 	"github.com/n-ct/ct-monitor/utils"
@@ -36,9 +38,9 @@ func createMonitor(monitorConfigName string, monitorListName string, logListName
 
 // Stores the contents of monitor_config.json
 type MonitorConfig struct {
-	LogIDs []string `json:"logIDs"`
-	MonitorID string `json:"monitorID"`
-	StrPrivKey string `json:"privKey"`
+	LogIDs []string `json:"log_ids"`
+	MonitorID string `json:"monitor_id"`
+	StrPrivKey string `json:"priv_key"`
 }
 
 // Parse monitorConfig json file 
@@ -91,7 +93,12 @@ func getMonitorListInfo(monitorListName string, monitorConfig *MonitorConfig) (*
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error creating monitor list for monitor config: %w", err)
 	}
+	glog.Infoln(monitorConfig)
 	monitorInfo := monitorList.FindMonitorByMonitorID(monitorConfig.MonitorID)
+	if monitorInfo == nil {
+		return nil, nil, nil, fmt.Errorf("MonitorID (%v) not found in monitor list", monitorConfig.MonitorID)
+	}
+	glog.Infoln(monitorInfo)
 	gossiperURL := &monitorInfo.GossiperURL
 	msplit := strings.Split(monitorInfo.MonitorURL, ":")
 	monitorURL := msplit[1][2:] + ":" + msplit[2]
