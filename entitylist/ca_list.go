@@ -19,7 +19,6 @@ package entitylist
 
 import (
 	"fmt"
-	"strings"
 	"encoding/json"
 
 	"github.com/n-ct/ct-monitor/utils"
@@ -81,7 +80,7 @@ func newCAListFromJSON(clData []byte) (*CAList, error) {
 func (cl *CAList) FindCAByCAID(CAID string) *CAInfo {
 	for _, op := range cl.CAOperators {
 		for _, ca := range op.CAs {
-			if (strings.Contains(ca.CAID, CAID)){
+			if ca.CAID == CAID {
 				return ca 
 			}
 		}
@@ -93,7 +92,7 @@ func (cl *CAList) FindCAByCAID(CAID string) *CAInfo {
 func (ml *CAList) FindCAByCAURL(caURL string) *CAInfo {
 	for _, op := range ml.CAOperators {
 		for _, ca := range op.CAs {
-			if (strings.Contains(ca.CAURL, caURL)){
+			if ca.CAURL == caURL {
 				return ca 
 			}
 		}

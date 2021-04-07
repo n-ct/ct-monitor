@@ -19,7 +19,6 @@ package entitylist
 
 import (
 	"fmt"
-	"strings"
 	"time"
 	"encoding/json"
 
@@ -213,7 +212,7 @@ func newLogListFromJSON(llData []byte) (*LogList, error) {
 func (ll *LogList) FindLogByLogID(logID string) *LogInfo {
 	for _, op := range ll.Operators {
 		for _, log := range op.Logs {
-			if (strings.Contains(log.LogID, logID)){
+			if log.LogID == logID {
 				return log
 			}
 		}

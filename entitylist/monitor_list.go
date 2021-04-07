@@ -19,7 +19,6 @@ package entitylist
 
 import (
 	"fmt"
-	"strings"
 	"encoding/json"
 
 	"github.com/n-ct/ct-monitor/utils"
@@ -93,7 +92,7 @@ func (ml *MonitorList) FindMonitorByMonitorID(monitorID string) *MonitorInfo {
 func (ml *MonitorList) FindMonitorByMonitorURL(monitorURL string) *MonitorInfo {
 	for _, op := range ml.MonitorOperators {
 		for _, mon := range op.Monitors {
-			if (strings.Contains(mon.MonitorURL, monitorURL)){
+			if mon.MonitorURL ==  monitorURL {
 				return mon 
 			}
 		}
