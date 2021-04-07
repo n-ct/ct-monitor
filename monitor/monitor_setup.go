@@ -5,8 +5,6 @@ import (
 	"strings"
 	"encoding/json"
 
-	"github.com/golang/glog"
-
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/entitylist"
 	"github.com/n-ct/ct-monitor/utils"
@@ -93,12 +91,10 @@ func getMonitorListInfo(monitorListName string, monitorConfig *MonitorConfig) (*
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error creating monitor list for monitor config: %w", err)
 	}
-	glog.Infoln(monitorConfig)
 	monitorInfo := monitorList.FindMonitorByMonitorID(monitorConfig.MonitorID)
 	if monitorInfo == nil {
 		return nil, nil, nil, fmt.Errorf("MonitorID (%v) not found in monitor list", monitorConfig.MonitorID)
 	}
-	glog.Infoln(monitorInfo)
 	gossiperURL := &monitorInfo.GossiperURL
 	msplit := strings.Split(monitorInfo.MonitorURL, ":")
 	monitorURL := msplit[1][2:] + ":" + msplit[2]
