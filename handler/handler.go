@@ -118,3 +118,57 @@ func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
 	h.m.Gossip(sth)
 	rw.WriteHeader(http.StatusOK)
 }
+
+func (h *Handler) STHWithPOCGossip(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		writeWrongMethodResponse(&rw, "GET")
+		return
+	}
+	glog.Infoln("Received STHWithPOCGossip request")
+	decoder := json.NewDecoder(req.Body)
+	var sthPOCGosReq mtr.STHWithPOCGossipRequest
+	if err := decoder.Decode(&sthPOCGosReq); err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid STHWithPOCGossipRequest: %v", err))
+		return
+	}
+
+	logClient, ok := h.m.LogIDMap[sthPOCGosReq.LogID]
+	if !ok {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("STHWithPOCGossip request log-id param value invalid. %v log-id not found in Monitor's LogIDMap", sthPOCGosReq.LogID))
+		return
+	}
+	ctx := context.Background()
+	sth, err := logClient.GetSTHWithConsistencyProof(ctx, sthPOCGosReq.FirstTreeSize, sthPOCGosReq.SecondTreeSize)
+	if err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSTHWithPoC from logger with log-id (%v): %v", sthPOCGosReq.LogID, err))
+		return
+	}
+	h.m.Gossip(sth)
+	rw.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) SRDWithRevDataGossip(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		writeWrongMethodResponse(&rw, "GET")
+		return
+	}
+	glog.Infoln("Received SRDWithRevDataGossip request")
+	decoder := json.NewDecoder(req.Body)
+	var srdGosReq mtr.SRDWithRevDataGossipRequest
+	if err := decoder.Decode(&srdGosReq); err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Invalid SRDWithRevDataGossipRequest: %v", err))
+		return
+	}
+	logClient, ok := h.m.LogIDMap[srdGosReq.LogID]
+	if !ok {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("SRDWithRevDataGossip request log-id param value invalid. %v log-id not found in Monitor's LogIDMap", srdGosReq.LogID))
+		return
+	}
+	srdCTObj, err := h.m.GetSRDWithRevData(logClient.LogInfo.URL, &srdGosReq)
+	if err != nil {
+		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSRDWithRevData from logger with log-id (%v): %v", srdGosReq.LogID, err))
+		return
+	}
+	h.m.Gossip(srdCTObj)
+	rw.WriteHeader(http.StatusOK)
+}

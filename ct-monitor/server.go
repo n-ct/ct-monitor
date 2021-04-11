@@ -58,7 +58,6 @@ func main(){
 func serverSetup(m *monitor.Monitor) *http.Server{
 	serveMux := handlerSetup(m)
 	glog.Infof("Serving at address: %s", m.ListenAddress)
-	fmt.Printf("Serving at address: %s", m.ListenAddress)
 	server := &http.Server {
 		Addr: m.ListenAddress,
 		Handler: serveMux,
@@ -82,6 +81,8 @@ func handlerSetup(m *monitor.Monitor) (*http.ServeMux) {
 	serveMux.HandleFunc(mtr.NewInfoPath, handler.NewInfo)
 	serveMux.HandleFunc(mtr.MonitorDomainPath, handler.MonitorDomain)
 	serveMux.HandleFunc(mtr.STHGossipPath, handler.STHGossip)
+	serveMux.HandleFunc(mtr.STHWithPOCGossipPath, handler.STHWithPOCGossip)
+	serveMux.HandleFunc(mtr.SRDWithRevDataGossipPath, handler.SRDWithRevDataGossip)
 
 	// Return a 200 on the root so clients can easily check if server is up
 	serveMux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {

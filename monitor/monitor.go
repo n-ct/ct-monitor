@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bytes"
 	"context"
+	"strings"
 	"encoding/json"
 	"net/http"
 
@@ -210,4 +211,39 @@ func testSRDCTObj(sig ct.DigitallySigned) {
 		fmt.Println(err)
 	}
 	fmt.Println(ctObj)
+}
+
+func (m *Monitor) GetSRDWithRevData(logURL string, srdGosReq *mtr.SRDWithRevDataGossipRequest) (*mtr.CTObject, error) {
+	slashSplit := strings.Split(logURL, "/")
+	colonSplit := strings.Split(slashSplit[2], ":")
+	reqURL := slashSplit[0] + "//" + colonSplit[0] + ":6966"
+	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/get-log-srd-with-rev-data")
+	glog.Infof("\nget srdWithRevData from log at address: %s", reqURL)
+
+	// Create request struct
+
+	revAndProdSRDReq := ctca.RevokeAndProduceSRDRequest{
+		PercentRevoked: srdGosReq.PercentRevoked, 
+		TotalCerts: srdGosReq.TotalCerts,
+	}
+
+	// Create request
+	jsonBytes, err := json.Marshal(revAndProdSRDReq)	// Just use serialize method somewhere else
+	req, err := http.NewRequest("GET", reqFullURL, bytes.NewBuffer(jsonBytes)) 
+	req.Header.Set("Content-Type", "application/json");
+
+	// Send request
+	client := &http.Client{};
+	resp, err := client.Do(req);
+	if err != nil {
+		panic(err);
+	}
+	defer resp.Body.Close();
+
+	// Decode the newly received SRDWithRevData
+	var srdCTObj mtr.CTObject
+	if err := json.NewDecoder(resp.Body).Decode(&srdCTObj); err != nil {
+		glog.Errorln("failed to decode srd ct object")
+	}
+	return &srdCTObj, nil
 }

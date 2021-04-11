@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
+	/*"strings"
+	"bytes"
 	"encoding/json"
+	*/
 
 	"github.com/golang/glog"
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
 	"github.com/n-ct/ct-monitor/entitylist"
-	"github.com/n-ct/ct-monitor/utils"
+	//"github.com/n-ct/ct-monitor/utils"
 )
 
 // LogClient represents a client for a given CT Log instance
@@ -154,7 +156,7 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 	return inclusionProof, resp.LeafInput,  nil
 }
 
-func (c *LogClient) GetSRDWithRevData() (*CTObject, error) {
+/*func (c *LogClient) GetSRDWithRevData(srdGosReq *SRDWithRevDataGossipRequest) (*CTObject, error) {
 	logURL := c.LogInfo.URL
 	slashSplit := strings.Split(logURL, "/")
 	colonSplit := strings.Split(slashSplit[2], ":")
@@ -162,9 +164,13 @@ func (c *LogClient) GetSRDWithRevData() (*CTObject, error) {
 	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/get-log-srd-with-rev-data")
 	glog.Infof("\nget srdWithRevData from log at address: %s", reqURL)
 
+	// Create request struct
+
+	revAndProdSRDReq := ctca.RevokeAndProduceSRDRequest{srdGosReq.PercentRevoked, srdGosReq.TotalCerts}
+
 	// Create request
-	req, err := http.NewRequest("GET", reqFullURL, nil) 
-	req.Header.Set("X-Custom-Header", "myvalue");
+	jsonBytes, err := json.Marshal(revAndProdSRDReq)	// Just use serialize method somewhere else
+	req, err := http.NewRequest("GET", reqFullURL, bytes.NewBuffer(jsonBytes)) 
 	req.Header.Set("Content-Type", "application/json");
 
 	// Send request
@@ -173,13 +179,13 @@ func (c *LogClient) GetSRDWithRevData() (*CTObject, error) {
 	if err != nil {
 		panic(err);
 	}
+	defer resp.Body.Close();
 
 	// Decode the newly received SRDWithRevData
 	var srdCTObj CTObject
 	if err := json.NewDecoder(resp.Body).Decode(&srdCTObj); err != nil {
 		glog.Errorln("failed to decode srd ct object")
 	}
-
-	defer resp.Body.Close();
 	return &srdCTObj, nil
 }
+*/

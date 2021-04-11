@@ -14,4 +14,4 @@ go build server.go
 
 # Go back to top level of the ct-monitor directory and run the server
 cd "$CT_MONITOR_BASE_DIR"
-ct-monitor/server
+ct-monitor/server -logtostderr=true

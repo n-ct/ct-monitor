@@ -13,11 +13,25 @@ import (
 
 // Endpoint path const variables
 const (
-	AuditPath 		  = "/ct/v1/audit"
-	NewInfoPath		  = "/ct/v1/new-info"
-	MonitorDomainPath = "/ct/v1/monitor-domain"
-	STHGossipPath	  = "/ct/v1/sth-gossip"
+	AuditPath 		  			= "/ct/v1/audit"
+	NewInfoPath		  			= "/ct/v1/new-info"
+	MonitorDomainPath 			= "/ct/v1/monitor-domain"
+	STHGossipPath	  			= "/ct/v1/sth-gossip"
+	STHWithPOCGossipPath 		= "/ct/v1/sth-with-poc-gossip"
+	SRDWithRevDataGossipPath 	= "/ct/v1/srd-with-revdata-gossip"
 )
+
+type STHWithPOCGossipRequest struct {
+	LogID 			string
+	FirstTreeSize 	uint64
+	SecondTreeSize 	uint64
+}
+
+type SRDWithRevDataGossipRequest struct {
+	LogID 			string
+	PercentRevoked 	uint8
+	TotalCerts 		uint64
+}
 
 // TypeID const variables
 const (
