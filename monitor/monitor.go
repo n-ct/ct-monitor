@@ -217,7 +217,7 @@ func (m *Monitor) GetSRDWithRevData(logURL string, srdGosReq *mtr.SRDWithRevData
 	slashSplit := strings.Split(logURL, "/")
 	colonSplit := strings.Split(slashSplit[2], ":")
 	reqURL := slashSplit[0] + "//" + colonSplit[0] + ":6966"
-	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/get-log-srd-with-rev-data")
+	reqFullURL := utils.CreateRequestURL(reqURL, "/ct/v1/revoke-and-produce-srd")
 	glog.Infof("\nget srdWithRevData from log at address: %s", reqURL)
 
 	// Create request struct
