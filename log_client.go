@@ -108,7 +108,7 @@ func (c *LogClient) GetSTHWithConsistencyProof(ctx context.Context, first, secon
 	if err != nil {
 		return nil, fmt.Errorf("failed to first get STH when getting STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
 	}
-	poc, err := c.getConsistencyProof(ctx, 100, 1000)
+	poc, err := c.getConsistencyProof(ctx, first, second)
 	if err != nil {
 		return nil, fmt.Errorf("failed to first get PoC when getting STHWithPoC from Logger %s: %w", c.LogInfo.LogID, err)
 	}
