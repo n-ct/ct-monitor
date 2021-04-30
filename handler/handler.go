@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"unsafe"
 
 	"github.com/golang/glog"
 
 	mtr "github.com/n-ct/ct-monitor"
 	"github.com/n-ct/ct-monitor/monitor"
+	"github.com/n-ct/ct-monitor/utils"
 )
 
 type Handler struct {
@@ -144,7 +144,8 @@ func (h *Handler) STHWithPOCGossip(rw http.ResponseWriter, req *http.Request) {
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSTHWithPoC from logger with log-id (%v): %v", sthPOCGosReq.LogID, err))
 		return
 	}
-	glog.Infof("Size of sth CTObject is: %v", unsafe.Sizeof(*sth))
+	size, err := utils.GetSize(sth)
+	glog.Infof("Size of sth CTObject is %v: %v", size, err)
 	h.m.Gossip(sth)
 	rw.WriteHeader(http.StatusOK)
 }
@@ -172,7 +173,8 @@ func (h *Handler) SRDWithRevDataGossip(rw http.ResponseWriter, req *http.Request
 		return
 	}
 	//glog.Infoln(srdCTObj)
-	glog.Infof("Size of srd CTObject is: %v", unsafe.Sizeof(*srdCTObj))
+	size, err := utils.GetSize(srdCTObj)
+	glog.Infof("Size of srd CTObject is %v: %v", size, err)
 	h.m.Gossip(srdCTObj)
 	rw.WriteHeader(http.StatusOK)
 }

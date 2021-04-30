@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"io/ioutil"
+	"bytes"
+	"encoding/json"
 )
 
 // Open a file and parse it as bytes
@@ -32,4 +34,12 @@ func CreateRequestURL(address string, endpointPath string) string {
 		endpointPath = strings.TrimPrefix(endpointPath, forwardSlash)
 	}
 	return address + forwardSlash + endpointPath
+}
+
+func GetSize(i interface{}) (int, error) {
+	b := new(bytes.Buffer)
+    if err := json.NewEncoder(b).Encode(i); err != nil {
+		return 0, fmt.Errorf("Failed to encode object of type (%T): %v", i, err)
+	}
+	return b.Len(), nil
 }
