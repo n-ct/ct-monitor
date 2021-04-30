@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"unsafe"
 
 	"github.com/golang/glog"
 
@@ -143,6 +144,7 @@ func (h *Handler) STHWithPOCGossip(rw http.ResponseWriter, req *http.Request) {
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSTHWithPoC from logger with log-id (%v): %v", sthPOCGosReq.LogID, err))
 		return
 	}
+	glog.Infof("Size of sth CTObject is: %v", unsafe.Sizeof(*sth))
 	h.m.Gossip(sth)
 	rw.WriteHeader(http.StatusOK)
 }
@@ -169,6 +171,8 @@ func (h *Handler) SRDWithRevDataGossip(rw http.ResponseWriter, req *http.Request
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSRDWithRevData from logger with log-id (%v): %v", srdGosReq.LogID, err))
 		return
 	}
+	//glog.Infoln(srdCTObj)
+	glog.Infof("Size of srd CTObject is: %v", unsafe.Sizeof(*srdCTObj))
 	h.m.Gossip(srdCTObj)
 	rw.WriteHeader(http.StatusOK)
 }
