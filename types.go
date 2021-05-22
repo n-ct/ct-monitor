@@ -46,6 +46,7 @@ const (
 
 	// Revocation transparency data
 	SRDWithRevDataTypeID 		= "SRD_REVDATA"
+	SRDTypeID 					= "SRD"
 )
 
 type SignedTreeHeadData struct {
@@ -300,12 +301,25 @@ func (c *CTObject) DeconstructRevData() (*RevocationData, error) {
 }
 
 func (c *CTObject) DeconstructSRD() (*SignedRevocationDigest, error) {
-	srd_rev, err := c.deconstructSRDWithRevData()
-	if err != nil {
-		return nil, fmt.Errorf("error deconstructing PoC from %s CTObject: %v", c.TypeID, err)
+	var retSRD SignedRevocationDigest
+	if c.TypeID == SRDTypeID {
+		var srd SignedRevocationDigest
+		err := json.Unmarshal(c.Blob, &srd)
+		if err != nil {
+			return nil, fmt.Errorf("error deconstructing SRD from %s CTObject: %v", c.TypeID, err)
+		}
+		retSRD = srd
 	}
-	return &srd_rev.SRD, nil
+	if c.TypeID == SRDWithRevDataTypeID {
+		srd_rev, err := c.deconstructSRDWithRevData()
+		if err != nil {
+			return nil, fmt.Errorf("error deconstructing SRDWithRevData from %s CTObject: %v", c.TypeID, err)
+		}
+		retSRD = srd_rev.SRD
+	}
+	return &retSRD, nil
 }
+
 
 // Given a CT v2 Object, construct a CTObject
 func ConstructCTObject(i interface{}) (*CTObject, error) {
@@ -373,6 +387,20 @@ func ConstructCTObject(i interface{}) (*CTObject, error) {
 		digest, _, err = signature.GenerateHash(srd_rev.SRD.Signature.Algorithm.Hash, blob)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing SRDWithRevData CTObject generating hash: %w", err)
+		}
+
+	case *SignedRevocationDigest:
+		srd := i.(*SignedRevocationDigest)
+		typeID = SRDTypeID
+		timestamp = srd.RevDigest.Timestamp
+		signer = srd.EntityID
+		blob, err = signature.SerializeData(srd)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing SRD CTObject serializing data: %w", err)
+		}
+		digest, _, err = signature.GenerateHash(srd.Signature.Algorithm.Hash, blob)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing SRDCTObject generating hash: %w", err)
 		}
 	
 	default:

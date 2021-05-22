@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/n-ct/ct-monitor/signature"
+	ct "github.com/google/certificate-transparency-go"
 )
 
 var (
@@ -142,5 +143,36 @@ func TestCreateDeconstructSTHAuditOKRoundTrip(t *testing.T) {
 	
 	if !reflect.DeepEqual(reconSTH, sth) {
 		t.Fatalf("reconstructed AuditOKSTH \n(%v) doesn't match original sth\n (%v)", reconSTH, sth)
+	}
+}
+
+func mustCreateSRD(t *testing.T, sig ct.DigitallySigned) (*SignedRevocationDigest) {
+	hsh := []byte("hi")
+	revDigest := RevocationDigest{3, hsh, hsh}
+	srd := SignedRevocationDigest{"ca", revDigest, sig}
+	return &srd
+}
+
+func TestConstructDeconstructSRDRoundTrip(t *testing.T) {
+	sth, err := mustGetSTH(t)
+	if err != nil {
+		t.Fatalf("failed to get sth to test deconstructConstructRoundTrip: %v", err)
+	}
+	deconSTH, err := sth.DeconstructSTH()
+	if err != nil {
+		t.Fatalf("failed to deconstruct sth (%v): %v", sth, err)
+	}
+	baseSRD := mustCreateSRD(t, deconSTH.Signature)
+	constrSRD, err := ConstructCTObject(baseSRD)
+	if err != nil {
+		t.Fatalf("failed to construct SRD (%v): %v", constrSRD, err)
+	}
+	deconSRD, err := constrSRD.DeconstructSRD()
+	if err != nil {
+		t.Fatalf("failed to deconstruct srd (%v): %v", constrSRD, err)
+	}
+
+	if !reflect.DeepEqual(baseSRD, deconSRD) {
+		t.Fatalf("deconstructed srd\n(%v) doesn't match original srd\n (%v)", deconSRD, baseSRD)
 	}
 }
