@@ -95,6 +95,7 @@ func handlerSetup(m *monitor.Monitor) (*http.ServeMux) {
 	return serveMux
 }
 
+// Shuts down the Monitor Server instance
 func shutdownServer(server *http.Server, returnCode int){
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	server.Shutdown(ctx)

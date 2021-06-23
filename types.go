@@ -283,6 +283,7 @@ func (c *CTObject) DeconstructNonRespondingLogPOM() (*NonRespondingLogPOM, error
 	return &pom, nil
 }
 
+// Deconstruct SRDWithRevData CTObject
 func (c *CTObject) deconstructSRDWithRevData() (*SRDWithRevData, error) {
 	var srd_rev SRDWithRevData
 	err := json.Unmarshal(c.Blob, &srd_rev)
@@ -292,6 +293,7 @@ func (c *CTObject) deconstructSRDWithRevData() (*SRDWithRevData, error) {
 	return &srd_rev, nil
 }
 
+// Deconstruct RevData CTObject
 func (c *CTObject) DeconstructRevData() (*RevocationData, error) {
 	srd_rev, err := c.deconstructSRDWithRevData()
 	if err != nil {
@@ -300,6 +302,7 @@ func (c *CTObject) DeconstructRevData() (*RevocationData, error) {
 	return &srd_rev.RevData, nil
 }
 
+// Deconstruct SRD CTObject
 func (c *CTObject) DeconstructSRD() (*SignedRevocationDigest, error) {
 	var retSRD SignedRevocationDigest
 	if c.TypeID == SRDTypeID {

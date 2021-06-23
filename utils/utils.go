@@ -36,6 +36,7 @@ func CreateRequestURL(address string, endpointPath string) string {
 	return address + forwardSlash + endpointPath
 }
 
+// Convert an object to json and get the size
 func GetSize(i interface{}) (int, error) {
 	b := new(bytes.Buffer)
     if err := json.NewEncoder(b).Encode(i); err != nil {

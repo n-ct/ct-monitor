@@ -17,6 +17,7 @@ type Handler struct {
 	m *monitor.Monitor
 }
 
+// Create new instance of the Handler class
 func NewHandler(m *monitor.Monitor) Handler {
 	return Handler{m}
 }
@@ -31,6 +32,7 @@ func writeErrorResponse(rw *http.ResponseWriter, status int, body string) {
 	(*rw).Write([]byte(body))
 }
 
+// Handle an audit request from a Relying Party
 func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	glog.V(1).Infoln("Received Audit Request")
 	if req.Method != "POST" {
@@ -64,7 +66,7 @@ func (h *Handler) Audit(rw http.ResponseWriter, req *http.Request){
 	rw.WriteHeader(http.StatusOK)
 }
 
-
+// Handle receiving new data from another party
 func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
 	glog.Infoln("Received NewInfo Request")
 	if req.Method != "POST" {
@@ -86,6 +88,7 @@ func (h *Handler) NewInfo(rw http.ResponseWriter, req *http.Request){
 	rw.WriteHeader(http.StatusOK)
 }
 
+// Handle a request from another party to monitor a specific domain
 func (h *Handler) MonitorDomain(rw http.ResponseWriter, req *http.Request){
 	glog.V(1).Infoln("Received MonitorDomain Request")
 	if req.Method != "POST" {
@@ -94,6 +97,7 @@ func (h *Handler) MonitorDomain(rw http.ResponseWriter, req *http.Request){
 	}
 }
 
+// Handle request to get an STH from a specific Logger and then to gossip to peers
 func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		writeWrongMethodResponse(&rw, "GET")
@@ -120,6 +124,7 @@ func (h *Handler) STHGossip(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
+// Handle request to get an STHWithPOC from a specific Logger and then to gossip to peers
 func (h *Handler) STHWithPOCGossip(rw http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		writeWrongMethodResponse(&rw, "GET")
@@ -144,12 +149,15 @@ func (h *Handler) STHWithPOCGossip(rw http.ResponseWriter, req *http.Request) {
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSTHWithPoC from logger with log-id (%v): %v", sthPOCGosReq.LogID, err))
 		return
 	}
+
+	// Log the size of the object
 	size, err := utils.GetSize(sth)
 	glog.Infof("Size of sth CTObject is %v: %v", size, err)
 	h.m.Gossip(sth)
 	rw.WriteHeader(http.StatusOK)
 }
 
+// Handle request to get an SRD from a specific Logger and then to gossip to peers
 func (h *Handler) SRDWithRevDataGossip(rw http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		writeWrongMethodResponse(&rw, "GET")
@@ -172,7 +180,8 @@ func (h *Handler) SRDWithRevDataGossip(rw http.ResponseWriter, req *http.Request
 		writeErrorResponse(&rw, http.StatusBadRequest, fmt.Sprintf("Monitor failed to getSRDWithRevData from logger with log-id (%v): %v", srdGosReq.LogID, err))
 		return
 	}
-	//glog.Infoln(srdCTObj)
+
+	// Log the size of the object
 	size, err := utils.GetSize(srdCTObj)
 	glog.Infof("Size of srd CTObject is %v: %v", size, err)
 	h.m.Gossip(srdCTObj)

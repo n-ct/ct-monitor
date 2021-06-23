@@ -61,6 +61,7 @@ func TestCreateSignatureVerifySignatureRoundTrip(t *testing.T) {
 	}
 }
 
+
 func TestSerializeData(t *testing.T) {
 	testBytes, _ := json.Marshal(testString)
 	serializedData, err := SerializeData(testString)

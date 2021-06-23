@@ -3,7 +3,6 @@ package monitor
 import (
 	"fmt"
 	"bytes"
-	"context"
 	"strings"
 	"encoding/json"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	"github.com/n-ct/ct-monitor/signature"
 
 	ctca "github.com/n-ct/ct-certificate-authority"
-	ct "github.com/google/certificate-transparency-go"
 )
 
 type Monitor struct {
@@ -166,53 +164,7 @@ func (m *Monitor) AddEntry(ctObject *mtr.CTObject) error {
 	return nil
 }
 
-// Temporary function to test basic monitor methods
-func (m *Monitor) TestLogClient(){
-	ctx := context.Background()
-	logID := "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM="
-	logClient := m.LogIDMap[logID]
-
-	sth, err := logClient.GetSTH(ctx)
-	if err != nil {
-		fmt.Printf("Failed to get STH from LogClient: %v", err)
-		return;
-	}
-	fmt.Println(sth)
-
-	/*dSTH, err := sth.DeconstructSTH()
-	testSRDCTObj(dSTH.Signature)
-	*/
-}
-
-func testCAList() {
-	caList, err := entitylist.NewCAList("entitylist/ca_list.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(caList.FindCAByCAID("LeYXK29QzQV9RxvgMw+hnOeyZV85A6a5quOLltev9H0="))
-	fmt.Println(caList.FindCAByCAURL("http://localhost:6000"))
-
-}
-
-func testSRDCTObj(sig ct.DigitallySigned) {
-	crv := ctca.CreateCRV([]uint64{1,2}, 0)
-	compCRV, err := ctca.CompressCRV(crv)
-	if err != nil {
-		fmt.Println(err)
-	}
-	revData := mtr.RevocationData{"hi", "hi", 3, compCRV}
-	hsh := []byte("hi")
-	revDigest := mtr.RevocationDigest{3, hsh, hsh}
-	srd := mtr.SignedRevocationDigest{"ca", revDigest, sig}
-	srdWithRev := mtr.SRDWithRevData{revData, srd}
-
-	ctObj, err := mtr.ConstructCTObject(&srdWithRev)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(ctObj)
-}
-
+// Send request to a specific Logger to get an SRDWithRevData
 func (m *Monitor) GetSRDWithRevData(logURL string, srdGosReq *mtr.SRDWithRevDataGossipRequest) (*mtr.CTObject, error) {
 	slashSplit := strings.Split(logURL, "/")
 	colonSplit := strings.Split(slashSplit[2], ":")
@@ -221,7 +173,6 @@ func (m *Monitor) GetSRDWithRevData(logURL string, srdGosReq *mtr.SRDWithRevData
 	glog.Infof("\nget srdWithRevData from log at address: %s", reqURL)
 
 	// Create request struct
-
 	revAndProdSRDReq := ctca.RevokeAndProduceSRDRequest{
 		PercentRevoked: srdGosReq.PercentRevoked, 
 		TotalCerts: srdGosReq.TotalCerts,
